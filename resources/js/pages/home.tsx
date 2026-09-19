@@ -130,6 +130,8 @@ export default function Home() {
         return () => window.removeEventListener('beforeinstallprompt', handler);
     }, []);
 
+    const isStandalone = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true);
+
     const handleInstall = async () => {
         if (!deferredPrompt.current) return;
         deferredPrompt.current.prompt();
@@ -182,7 +184,7 @@ export default function Home() {
     return (
         <>
             <Head title={hero.title ?? 'FX Paradox'} />
-            <div className="min-h-screen bg-background text-foreground">
+            <div className="min-h-screen overflow-x-hidden bg-background text-foreground">
 
                 {/* Navbar */}
                 <nav className="sticky top-0 z-50 border-b border-border/50 bg-background/80 backdrop-blur-md">
@@ -319,32 +321,32 @@ export default function Home() {
                                     </div>
                                 </FadeIn>
                             </div>
-                            <div className="relative">
+                            <div className="relative min-w-0">
                                 <SlideInRight>
                                     {hero.image ? (
                                         <img src={`/storage/${hero.image}`} alt="FX Paradox" className="w-full rounded-2xl border shadow-2xl shadow-primary/10" />
                                     ) : (
-                                        <div className="relative rounded-2xl border bg-card/50 p-8 shadow-2xl shadow-primary/10">
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="rounded-xl border bg-background p-4">
-                                                    <TrendingUp className="mb-2 h-8 w-8 text-green-500" />
-                                                    <div className="text-2xl font-bold">+24.5%</div>
-                                                    <div className="text-xs text-muted-foreground">YTD Return</div>
+                                        <div className="relative rounded-2xl border bg-card/50 p-4 shadow-2xl shadow-primary/10 sm:p-8">
+                                            <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                                                <div className="rounded-xl border bg-background p-2 sm:p-4">
+                                                    <TrendingUp className="mb-1 h-5 w-5 text-green-500 sm:mb-2 sm:h-8 sm:w-8" />
+                                                    <div className="text-lg font-bold sm:text-2xl">+24.5%</div>
+                                                    <div className="text-[10px] text-muted-foreground sm:text-xs">YTD Return</div>
                                                 </div>
-                                                <div className="rounded-xl border bg-background p-4">
-                                                    <BarChart3 className="mb-2 h-8 w-8 text-blue-500" />
-                                                    <div className="text-2xl font-bold">1,247</div>
-                                                    <div className="text-xs text-muted-foreground">Stocks Tracked</div>
+                                                <div className="rounded-xl border bg-background p-2 sm:p-4">
+                                                    <BarChart3 className="mb-1 h-5 w-5 text-blue-500 sm:mb-2 sm:h-8 sm:w-8" />
+                                                    <div className="text-lg font-bold sm:text-2xl">1,247</div>
+                                                    <div className="text-[10px] text-muted-foreground sm:text-xs">Stocks Tracked</div>
                                                 </div>
-                                                <div className="rounded-xl border bg-background p-4">
-                                                    <Globe className="mb-2 h-8 w-8 text-primary" />
-                                                    <div className="text-2xl font-bold">15+</div>
-                                                    <div className="text-xs text-muted-foreground">Global Indices</div>
+                                                <div className="rounded-xl border bg-background p-2 sm:p-4">
+                                                    <Globe className="mb-1 h-5 w-5 text-primary sm:mb-2 sm:h-8 sm:w-8" />
+                                                    <div className="text-lg font-bold sm:text-2xl">15+</div>
+                                                    <div className="text-[10px] text-muted-foreground sm:text-xs">Global Indices</div>
                                                 </div>
-                                                <div className="rounded-xl border bg-background p-4">
-                                                    <Shield className="mb-2 h-8 w-8 text-amber-500" />
-                                                    <div className="text-2xl font-bold">2.4</div>
-                                                    <div className="text-xs text-muted-foreground">Sharpe Ratio</div>
+                                                <div className="rounded-xl border bg-background p-2 sm:p-4">
+                                                    <Shield className="mb-1 h-5 w-5 text-amber-500 sm:mb-2 sm:h-8 sm:w-8" />
+                                                    <div className="text-lg font-bold sm:text-2xl">2.4</div>
+                                                    <div className="text-[10px] text-muted-foreground sm:text-xs">Sharpe Ratio</div>
                                                 </div>
                                             </div>
                                         </div>
@@ -599,13 +601,15 @@ export default function Home() {
                                 {footer.copyright ?? `© ${new Date().getFullYear()} FX Paradox. All rights reserved.`}
                             </p>
                             <div className="flex items-center gap-3">
-                                <button
-                                    onClick={canInstall ? handleInstall : undefined}
-                                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
-                                >
-                                    <Download className="h-4 w-4" />
-                                    Get App
-                                </button>
+                                {!isStandalone && canInstall && (
+                                    <button
+                                        onClick={handleInstall}
+                                        className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90"
+                                    >
+                                        <Download className="h-4 w-4" />
+                                        Get App
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
