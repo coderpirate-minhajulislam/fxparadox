@@ -195,6 +195,57 @@ function EquityCurveChart({ curve }: { curve: EquityCurve }) {
     );
 }
 
+function DayCell({ cell, isToday, todayDate, onSelect }: { cell: { day: number | null; summary: DaySummary | null }; isToday: boolean; todayDate: number; onSelect: (summary: DaySummary) => void }) {
+    const hasProfit = cell.summary && cell.summary.net > 0;
+    const hasLoss = cell.summary && cell.summary.net < 0;
+    const showToday = isToday && cell.day === todayDate;
+
+    return (
+        <div
+            onClick={() => cell.summary && onSelect(cell.summary)}
+            className={`relative min-h-[60px] sm:min-h-[100px] border-b border-r p-1 sm:p-2 ${
+                cell.day === null ? 'bg-muted/30' : ''
+            } ${hasProfit ? 'bg-green-50 dark:bg-green-950/30' : ''} ${
+                hasLoss ? 'bg-red-50 dark:bg-red-950/30' : ''
+            } ${cell.summary ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+        >
+            {cell.day !== null && (
+                <>
+                    <span
+                        className={`text-xs sm:text-sm ${
+                            showToday
+                                ? 'inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold'
+                                : 'text-foreground'
+                        } ${hasProfit ? 'text-green-700 dark:text-green-400' : ''} ${
+                            hasLoss ? 'text-red-700 dark:text-red-400' : ''
+                        }`}
+                    >
+                        {cell.day}
+                    </span>
+
+                    {cell.summary && (
+                        <div className="mt-2 sm:mt-4 flex flex-col items-center gap-0.5">
+                            <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+                                <span>{cell.summary.total_trades}</span>
+                                <ArrowRightLeft className="h-3 w-3" />
+                            </div>
+                            <span
+                                className={`text-[10px] sm:text-xs font-semibold ${
+                                    cell.summary.net >= 0
+                                        ? 'text-green-600 dark:text-green-400'
+                                        : 'text-red-600 dark:text-red-400'
+                                }`}
+                            >
+                                ${Math.abs(cell.summary.net).toFixed(2)}
+                            </span>
+                        </div>
+                    )}
+                </>
+            )}
+        </div>
+    );
+}
+
 export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvanced, checklistCompliance: rawCompliance, equityCurve = [], accounts = [], pnlPeriods: rawPnl, dailySummary = [], currentMonth }: Props) {
     const stats = rawStats || defaultStats;
     const advanced = rawAdvanced || defaultAdvancedStats;
@@ -633,69 +684,56 @@ export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvan
                     </CardHeader>
                     <CardContent>
                         {/* Day headers */}
-                        <div className="grid grid-cols-7 text-center text-xs sm:text-sm font-medium text-muted-foreground">
+                        <div className="grid grid-cols-8 text-center text-xs sm:text-sm font-medium text-muted-foreground">
                             {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
                                 <div key={d} className="border-b py-2">
                                     {d}
                                 </div>
                             ))}
+                            <div className="border-b py-2 text-green-600 dark:text-green-400">
+                                Weekly
+                            </div>
                         </div>
 
                         {/* Calendar grid */}
-                        <div className="grid grid-cols-7">
-                            {calendarDays.map((cell, i) => {
-                                const isToday = isCurrentMonth && cell.day === today.getDate();
-                                const hasProfit = cell.summary && cell.summary.net > 0;
-                                const hasLoss = cell.summary && cell.summary.net < 0;
-
-                                return (
-                                    <div
-                                        key={i}
-                                        onClick={() => cell.summary && setSelectedDay(cell.summary)}
-                                        className={`relative min-h-[60px] sm:min-h-[100px] border-b border-r p-1 sm:p-2 ${
-                                            i % 7 === 0 ? 'border-l' : ''
-                                        } ${cell.day === null ? 'bg-muted/30' : ''} ${
-                                            hasProfit ? 'bg-green-50 dark:bg-green-950/30' : ''
-                                        } ${hasLoss ? 'bg-red-50 dark:bg-red-950/30' : ''} ${
-                                            cell.summary ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''
-                                        }`}
-                                    >
-                                        {cell.day !== null && (
-                                            <>
-                                                <span
-                                                    className={`text-xs sm:text-sm ${
-                                                        isToday
-                                                            ? 'inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground font-bold'
-                                                            : 'text-foreground'
-                                                    } ${hasProfit ? 'text-green-700 dark:text-green-400' : ''} ${
-                                                        hasLoss ? 'text-red-700 dark:text-red-400' : ''
-                                                    }`}
-                                                >
-                                                    {cell.day}
-                                                </span>
-
-                                                {cell.summary && (
-                                                    <div className="mt-2 sm:mt-4 flex flex-col items-center gap-0.5">
-                                                        <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
-                                                            <span>{cell.summary.total_trades}</span>
-                                                            <ArrowRightLeft className="h-3 w-3" />
-                                                        </div>
-                                                        <span
-                                                            className={`text-[10px] sm:text-xs font-semibold ${
-                                                                cell.summary.net >= 0
-                                                                    ? 'text-green-600 dark:text-green-400'
-                                                                    : 'text-red-600 dark:text-red-400'
-                                                            }`}
-                                                        >
-                                                            ${Math.abs(cell.summary.net).toFixed(2)}
-                                                        </span>
-                                                    </div>
-                                                )}
-                                            </>
-                                        )}
-                                    </div>
-                                );
-                            })}
+                        <div className="grid grid-cols-8">
+                            {(() => {
+                                const rows: { day: number | null; summary: DaySummary | null }[][] = [];
+                                for (let i = 0; i < calendarDays.length; i += 7) {
+                                    rows.push(calendarDays.slice(i, i + 7));
+                                }
+                                return rows.map((row, ri) => {
+                                    const weekNet = row.reduce((sum, cell) => sum + (cell.summary?.net ?? 0), 0);
+                                    const weekTrades = row.reduce((sum, cell) => sum + (cell.summary?.total_trades ?? 0), 0);
+                                    return row.map((cell, ci) => (
+                                        <DayCell key={`${ri}-${ci}`} cell={cell} isToday={isCurrentMonth} todayDate={today.getDate()} onSelect={setSelectedDay} />
+                                    )).concat(
+                                        <div
+                                            key={`${ri}-week`}
+                                            className={`flex min-h-[60px] sm:min-h-[100px] items-center justify-center border-b border-r p-1 sm:p-2 ${
+                                                weekNet > 0 ? 'bg-green-50 dark:bg-green-950/30' : ''
+                                            } ${
+                                                weekNet < 0 ? 'bg-red-50 dark:bg-red-950/30' : ''
+                                            } ${weekTrades > 0 ? 'cursor-pointer' : ''}`}
+                                        >
+                                            {weekTrades > 0 && (
+                                                <div className="flex flex-col items-center gap-0.5">
+                                                    <span className="hidden sm:inline text-[10px] text-muted-foreground">{weekTrades} trades</span>
+                                                    <span
+                                                        className={`text-[10px] sm:text-xs font-bold ${
+                                                            weekNet >= 0
+                                                                ? 'text-green-600 dark:text-green-400'
+                                                                : 'text-red-600 dark:text-red-400'
+                                                        }`}
+                                                    >
+                                                        {weekNet >= 0 ? '+' : '-'}${Math.abs(weekNet).toFixed(2)}
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                });
+                            })()}
                         </div>
                     </CardContent>
                 </Card>
