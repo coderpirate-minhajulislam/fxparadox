@@ -1,18 +1,18 @@
-export type TemplerImage = {
+export type NoteImage = {
     id: number;
-    templer_id: number;
+    note_id: number;
     image_path: string;
     sort_order: number;
     created_at: string;
     updated_at: string;
 };
 
-export type Templer = {
+export type Note = {
     id: number;
     user_id: number;
     title: string;
-    strategy_note: string | null;
-    images: TemplerImage[];
+    content: string | null;
+    images: NoteImage[];
     created_at: string;
     updated_at: string;
 };

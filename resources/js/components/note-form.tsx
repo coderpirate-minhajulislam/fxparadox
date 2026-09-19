@@ -5,35 +5,35 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ImagePlus, X } from 'lucide-react';
-import type { Templer, TemplerImage } from '@/types/templer';
+import type { Note, NoteImage } from '@/types/note';
 import { useRef, useState, type FormEvent } from 'react';
 
 type Props = {
     submitUrl: string;
-    templer?: Templer;
+    note?: Note;
 };
 
-export default function TemplerForm({ submitUrl, templer }: Props) {
-    const isEditing = !!templer;
+export default function NoteForm({ submitUrl, note }: Props) {
+    const isEditing = !!note;
 
     const { data, setData, post, processing, errors } = useForm<{
         title: string;
-        strategy_note: string;
+        content: string;
         images: File[];
         existing_image_ids: number[];
         remove_image_ids: number[];
         _method?: string;
     }>({
-        title: templer?.title || '',
-        strategy_note: templer?.strategy_note || '',
+        title: note?.title || '',
+        content: note?.content || '',
         images: [],
-        existing_image_ids: templer?.images?.map((img: TemplerImage) => img.id) || [],
+        existing_image_ids: note?.images?.map((img: NoteImage) => img.id) || [],
         remove_image_ids: [],
         ...(isEditing ? { _method: 'PUT' } : {}),
     });
 
-    const [existingImages, setExistingImages] = useState<TemplerImage[]>(
-        templer?.images || [],
+    const [existingImages, setExistingImages] = useState<NoteImage[]>(
+        note?.images || [],
     );
     const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,10 +44,11 @@ export default function TemplerForm({ submitUrl, templer }: Props) {
 
         const totalExisting = existingImages.length;
         const totalNew = newImagePreviews.length;
+        const totalFiles = files.length;
         const remaining = 10 - totalExisting - totalNew;
 
         if (remaining <= 0) {
-            alert('You can upload a maximum of 10 images per template.');
+            alert('You can upload a maximum of 10 images per note.');
             return;
         }
 
@@ -82,7 +83,7 @@ export default function TemplerForm({ submitUrl, templer }: Props) {
         <form onSubmit={handleSubmit}>
             <Card>
                 <CardHeader>
-                    <CardTitle>{isEditing ? 'Edit Template' : 'New Template'}</CardTitle>
+                    <CardTitle>{isEditing ? 'Edit Note' : 'New Note'}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
@@ -91,21 +92,21 @@ export default function TemplerForm({ submitUrl, templer }: Props) {
                             id="title"
                             value={data.title}
                             onChange={(e) => setData('title', e.target.value)}
-                            placeholder="e.g. My Breakout Strategy"
+                            placeholder="e.g. Market Analysis Notes"
                         />
                         {errors.title && <p className="text-sm text-red-500">{errors.title}</p>}
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="strategy_note">Strategy Note</Label>
+                        <Label htmlFor="content">Content</Label>
                         <Textarea
-                            id="strategy_note"
-                            value={data.strategy_note}
-                            onChange={(e) => setData('strategy_note', e.target.value)}
-                            rows={6}
-                            placeholder="Describe your strategy, entry/exit rules, risk management..."
+                            id="content"
+                            value={data.content}
+                            onChange={(e) => setData('content', e.target.value)}
+                            rows={8}
+                            placeholder="Write your note content here..."
                         />
-                        {errors.strategy_note && <p className="text-sm text-red-500">{errors.strategy_note}</p>}
+                        {errors.content && <p className="text-sm text-red-500">{errors.content}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -124,7 +125,7 @@ export default function TemplerForm({ submitUrl, templer }: Props) {
                                 <div key={img.id} className="relative h-32 w-32">
                                     <img
                                         src={`/${img.image_path}`}
-                                        alt="Template image"
+                                        alt="Note image"
                                         className="h-32 w-32 rounded-lg border object-cover"
                                     />
                                     <button
@@ -173,7 +174,7 @@ export default function TemplerForm({ submitUrl, templer }: Props) {
 
                     <div className="flex gap-2 pt-2">
                         <Button type="submit" disabled={processing}>
-                            {processing ? 'Saving...' : isEditing ? 'Update Template' : 'Create Template'}
+                            {processing ? 'Saving...' : isEditing ? 'Update Note' : 'Create Note'}
                         </Button>
                         <Button type="button" variant="outline" onClick={() => window.history.back()}>
                             Cancel

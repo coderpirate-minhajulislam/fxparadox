@@ -88,6 +88,11 @@ class User extends Authenticatable
         return $this->hasMany(ChecklistRule::class);
     }
 
+    public function notes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Note::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *

@@ -11,6 +11,7 @@ use App\Http\Controllers\User\AccountBalanceController;
 use App\Http\Controllers\User\ChecklistRuleController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\User\EconomicCalendarController;
+use App\Http\Controllers\User\NoteController;
 use App\Http\Controllers\User\TemplerController;
 use App\Http\Controllers\User\TradeJournalController;
 use App\Http\Controllers\User\TradingPairController;
@@ -70,6 +71,7 @@ Route::middleware(['auth', 'verified', 'approved', 'role:user'])->prefix('user')
     Route::resource('trade-journals', TradeJournalController::class);
     Route::get('trade-journals-export', [TradeJournalController::class, 'export'])->name('trade-journals.export');
     Route::resource('templers', TemplerController::class);
+    Route::resource('notes', NoteController::class);
 
     // Trading settings
     Route::get('position-calculator', PositionCalculatorController::class)->name('position-calculator');

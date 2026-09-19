@@ -11,7 +11,7 @@ class TemplerController extends Controller
 {
     public function index(Request $request)
     {
-        $templers = $request->user()->templers()->latest()->get();
+        $templers = $request->user()->templers()->with('images')->latest()->get();
 
         return Inertia::render('user/templers/index', [
             'templers' => $templers,
@@ -28,19 +28,26 @@ class TemplerController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'strategy_note' => ['nullable', 'string', 'max:5000'],
-            'image' => ['nullable', 'image', 'max:5120'],
+            'images' => ['nullable', 'array', 'max:10'],
+            'images.*' => ['image', 'max:5120'],
         ]);
 
-        if ($request->hasFile('image')) {
-            $file = $request->file('image');
-            $filename = time() . '_templer_' . $file->hashName();
-            $file->move(public_path('uploads/templers'), $filename);
-            $validated['image'] = 'uploads/templers/' . $filename;
-        }
-
         $validated['user_id'] = $request->user()->id;
+        $imagesData = $validated['images'] ?? [];
+        unset($validated['images']);
 
-        Templer::create($validated);
+        $templer = Templer::create($validated);
+
+        if (!empty($imagesData)) {
+            foreach ($imagesData as $index => $file) {
+                $filename = time() . '_templer_' . $index . '_' . $file->hashName();
+                $file->move(public_path('uploads/templers'), $filename);
+                $templer->images()->create([
+                    'image_path' => 'uploads/templers/' . $filename,
+                    'sort_order' => $index,
+                ]);
+            }
+        }
 
         return redirect()->route('user.templers.index')
             ->with('success', 'Template created successfully.');
@@ -52,6 +59,8 @@ class TemplerController extends Controller
             abort(403);
         }
 
+        $templer->load('images');
+
         return Inertia::render('user/templers/show', [
             'templer' => $templer,
         ]);
@@ -62,6 +71,8 @@ class TemplerController extends Controller
         if ($templer->user_id !== auth()->id()) {
             abort(403);
         }
+
+        $templer->load('images');
 
         return Inertia::render('user/templers/edit', [
             'templer' => $templer,
@@ -77,23 +88,42 @@ class TemplerController extends Controller
         $validated = $request->validate([
             'title' => ['required', 'string', 'max:255'],
             'strategy_note' => ['nullable', 'string', 'max:5000'],
-            'image' => ['nullable', 'image', 'max:5120'],
+            'images' => ['nullable', 'array', 'max:10'],
+            'images.*' => ['image', 'max:5120'],
+            'existing_image_ids' => ['nullable', 'array'],
+            'existing_image_ids.*' => ['integer', 'exists:templer_images,id'],
+            'remove_image_ids' => ['nullable', 'array'],
+            'remove_image_ids.*' => ['integer', 'exists:templer_images,id'],
         ]);
 
-        if ($request->hasFile('image')) {
-            // Delete old image
-            if ($templer->image && file_exists(public_path($templer->image))) {
-                unlink(public_path($templer->image));
+        $templer->update([
+            'title' => $validated['title'],
+            'strategy_note' => $validated['strategy_note'] ?? null,
+        ]);
+
+        // Remove images that were deleted by the user
+        if (!empty($validated['remove_image_ids'])) {
+            $imagesToRemove = $templer->images()->whereIn('id', $validated['remove_image_ids'])->get();
+            foreach ($imagesToRemove as $img) {
+                if (file_exists(public_path($img->image_path))) {
+                    unlink(public_path($img->image_path));
+                }
+                $img->delete();
             }
-            $file = $request->file('image');
-            $filename = time() . '_templer_' . $file->hashName();
-            $file->move(public_path('uploads/templers'), $filename);
-            $validated['image'] = 'uploads/templers/' . $filename;
-        } else {
-            unset($validated['image']);
         }
 
-        $templer->update($validated);
+        // Add new uploaded images
+        if (!empty($validated['images'])) {
+            $maxOrder = $templer->images()->max('sort_order') ?? -1;
+            foreach ($validated['images'] as $index => $file) {
+                $filename = time() . '_templer_' . $index . '_' . $file->hashName();
+                $file->move(public_path('uploads/templers'), $filename);
+                $templer->images()->create([
+                    'image_path' => 'uploads/templers/' . $filename,
+                    'sort_order' => $maxOrder + $index + 1,
+                ]);
+            }
+        }
 
         return redirect()->route('user.templers.index')
             ->with('success', 'Template updated successfully.');
@@ -105,8 +135,10 @@ class TemplerController extends Controller
             abort(403);
         }
 
-        if ($templer->image && file_exists(public_path($templer->image))) {
-            unlink(public_path($templer->image));
+        foreach ($templer->images as $image) {
+            if (file_exists(public_path($image->image_path))) {
+                unlink(public_path($image->image_path));
+            }
         }
 
         $templer->delete();

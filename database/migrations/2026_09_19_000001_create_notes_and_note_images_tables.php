@@ -8,18 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('templers', function (Blueprint $table) {
+        Schema::create('notes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('title');
-            $table->text('strategy_note')->nullable();
-            $table->string('image')->nullable();
+            $table->text('content')->nullable();
             $table->timestamps();
         });
 
-        Schema::create('templer_images', function (Blueprint $table) {
+        Schema::create('note_images', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('templer_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('note_id')->constrained()->cascadeOnDelete();
             $table->string('image_path');
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
@@ -28,7 +27,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('templer_images');
-        Schema::dropIfExists('templers');
+        Schema::dropIfExists('note_images');
+        Schema::dropIfExists('notes');
     }
 };
