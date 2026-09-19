@@ -6,6 +6,7 @@ import {
     Phone, Mail, MapPin, Quote, PieChart, Globe, DollarSign,
 } from 'lucide-react';
 import { useEffect, useRef, useState, useCallback } from 'react';
+import NasdaqChart from '@/components/nasdaq-chart';
 import { useAppearance } from '@/hooks/use-appearance';
 import type { SiteContentValues } from '@/types/site-content';
 
@@ -370,6 +371,29 @@ export default function Home() {
                                 </FadeIn>
                             ))}
                         </div>
+                    </div>
+                </section>
+
+                {/* Live NASDAQ Chart */}
+                <section className="py-16 sm:py-24 lg:py-32">
+                    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                        <FadeIn>
+                            <div className="mb-8 text-center sm:mb-12">
+                                <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+                                    <Activity className="h-3.5 w-3.5" />
+                                    Live Market Data
+                                </div>
+                                <h2 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
+                                    NASDAQ 100 (US100) Live Chart
+                                </h2>
+                                <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
+                                    Real-time NASDAQ 100 index price chart powered by TradingView.
+                                </p>
+                            </div>
+                        </FadeIn>
+                        <ScaleIn>
+                            <NasdaqChart theme={resolvedAppearance === 'dark' ? 'dark' : 'light'} />
+                        </ScaleIn>
                     </div>
                 </section>
 
