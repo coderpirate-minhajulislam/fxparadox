@@ -34,7 +34,7 @@ function useScrollAnimation() {
                     observer.unobserve(el);
                 }
             },
-            { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+            { threshold: 0, rootMargin: '0px 0px -30px 0px' }
         );
 
         observer.observe(el);
@@ -171,6 +171,14 @@ export default function Home() {
         updateAppearance(resolvedAppearance === 'dark' ? 'light' : 'dark');
     };
 
+    const scrollTo = (id: string) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth' });
+            history.replaceState(null, '', window.location.pathname);
+        }
+    };
+
     return (
         <>
             <Head title={hero.title ?? 'FX Paradox'} />
@@ -187,10 +195,10 @@ export default function Home() {
                         </Link>
 
                         <div className="hidden items-center gap-6 sm:flex">
-                            <a href="#services" className="text-sm font-medium text-muted-foreground transition hover:text-foreground">Services</a>
-                            <a href="#about" className="text-sm font-medium text-muted-foreground transition hover:text-foreground">About</a>
-                            <a href="#testimonials" className="text-sm font-medium text-muted-foreground transition hover:text-foreground">Testimonials</a>
-                            <a href="#contact" className="text-sm font-medium text-muted-foreground transition hover:text-foreground">Contact</a>
+                            <button onClick={() => scrollTo('services')} className="text-sm font-medium text-muted-foreground transition hover:text-foreground">Services</button>
+                            <button onClick={() => scrollTo('about')} className="text-sm font-medium text-muted-foreground transition hover:text-foreground">About</button>
+                            <button onClick={() => scrollTo('testimonials')} className="text-sm font-medium text-muted-foreground transition hover:text-foreground">Testimonials</button>
+                            <button onClick={() => scrollTo('contact')} className="text-sm font-medium text-muted-foreground transition hover:text-foreground">Contact</button>
                             <button onClick={toggleTheme} className="flex h-9 w-9 items-center justify-center rounded-lg border border-border transition hover:bg-accent" aria-label="Toggle theme">
                                 {resolvedAppearance === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                             </button>
@@ -219,32 +227,51 @@ export default function Home() {
                             </button>
                         </div>
                     </div>
+                </nav>
 
-                    {mobileMenuOpen && (
-                        <div className="border-t border-border/50 bg-background px-4 py-4 sm:hidden">
-                            <div className="flex flex-col gap-2">
-                                <a href="#services" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-accent">Services</a>
-                                <a href="#about" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-accent">About</a>
-                                <a href="#testimonials" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-accent">Testimonials</a>
-                                <a href="#contact" onClick={() => setMobileMenuOpen(false)} className="rounded-lg px-4 py-2.5 text-sm font-medium text-foreground transition hover:bg-accent">Contact</a>
-                                {auth?.user ? (
-                                    <Link href="/dashboard" className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
-                                        Dashboard <ArrowRight className="h-4 w-4" />
-                                    </Link>
-                                ) : (
-                                    <>
-                                        <Link href="/login" className="w-full rounded-lg border border-border px-4 py-2.5 text-center text-sm font-medium text-foreground transition hover:bg-accent">Log in</Link>
-                                        {canRegister && (
-                                            <Link href="/register" className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
-                                                Get Started <ArrowRight className="h-4 w-4" />
-                                            </Link>
-                                        )}
-                                    </>
-                                )}
+                {/* Mobile Menu */}
+                {mobileMenuOpen && (
+                    <>
+                        <div className="fixed inset-0 z-[100] bg-black/50 sm:hidden" onClick={() => setMobileMenuOpen(false)} />
+                        <div className="fixed inset-y-0 right-0 z-[101] w-72 border-l border-border/50 bg-background shadow-2xl sm:hidden">
+                            <div className="flex h-full flex-col p-6">
+                                <div className="mb-8 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                                            <TrendingUp className="h-4 w-4" />
+                                        </div>
+                                        <span className="font-bold">FX Paradox</span>
+                                    </div>
+                                    <button onClick={() => setMobileMenuOpen(false)} className="flex h-9 w-9 items-center justify-center rounded-lg border border-border transition hover:bg-accent">
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                </div>
+                                <div className="flex flex-col gap-1">
+                                    <button onClick={() => { scrollTo('services'); setMobileMenuOpen(false); }} className="rounded-lg px-4 py-3 text-left text-sm font-medium text-foreground transition hover:bg-accent">Services</button>
+                                    <button onClick={() => { scrollTo('about'); setMobileMenuOpen(false); }} className="rounded-lg px-4 py-3 text-left text-sm font-medium text-foreground transition hover:bg-accent">About</button>
+                                    <button onClick={() => { scrollTo('testimonials'); setMobileMenuOpen(false); }} className="rounded-lg px-4 py-3 text-left text-sm font-medium text-foreground transition hover:bg-accent">Testimonials</button>
+                                    <button onClick={() => { scrollTo('contact'); setMobileMenuOpen(false); }} className="rounded-lg px-4 py-3 text-left text-sm font-medium text-foreground transition hover:bg-accent">Contact</button>
+                                </div>
+                                <div className="mt-auto flex flex-col gap-2">
+                                    {auth?.user ? (
+                                        <Link href="/dashboard" className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
+                                            Dashboard <ArrowRight className="h-4 w-4" />
+                                        </Link>
+                                    ) : (
+                                        <>
+                                            <Link href="/login" className="w-full rounded-lg border border-border px-4 py-2.5 text-center text-sm font-medium text-foreground transition hover:bg-accent">Log in</Link>
+                                            {canRegister && (
+                                                <Link href="/register" className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition hover:bg-primary/90">
+                                                    Get Started <ArrowRight className="h-4 w-4" />
+                                                </Link>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    )}
-                </nav>
+                    </>
+                )}
 
                 {/* Hero */}
                 <section className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-background to-primary/10 py-16 sm:py-24 lg:py-36">
@@ -282,17 +309,17 @@ export default function Home() {
                                             {hero.button_text ?? 'Start Investing Today'}
                                             <ArrowRight className="h-4 w-4" />
                                         </Link>
-                                        <a
-                                            href="#services"
+                                        <button
+                                            onClick={() => scrollTo('services')}
                                             className="inline-flex items-center justify-center gap-2 rounded-xl border border-border px-8 py-4 text-sm font-semibold transition hover:bg-accent sm:text-base"
                                         >
                                             Explore Services
                                             <ChevronRight className="h-4 w-4" />
-                                        </a>
+                                        </button>
                                     </div>
                                 </FadeIn>
                             </div>
-                            <div className="relative hidden lg:block">
+                            <div className="relative">
                                 <SlideInRight>
                                     {hero.image ? (
                                         <img src={`/storage/${hero.image}`} alt="FX Paradox" className="w-full rounded-2xl border shadow-2xl shadow-primary/10" />
@@ -377,37 +404,40 @@ export default function Home() {
                 <section id="about" className="border-y border-border/50 bg-accent/30 py-16 sm:py-24 lg:py-32">
                     <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                         <div className="grid items-center gap-8 sm:gap-12 lg:grid-cols-2">
-                            <SlideInLeft className="order-2 lg:order-1">
-                                {about.image ? (
-                                    <img src={`/storage/${about.image}`} alt="About FX Paradox" className="w-full rounded-2xl border shadow-xl" />
-                                ) : (
-                                    <div className="rounded-2xl border bg-card p-8 shadow-xl">
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="rounded-xl bg-primary/5 p-4 text-center">
-                                                <Award className="mx-auto mb-2 h-8 w-8 text-primary" />
-                                                <div className="text-sm font-semibold">Award Winning</div>
-                                                <div className="text-xs text-muted-foreground">Platform 2024</div>
-                                            </div>
-                                            <div className="rounded-xl bg-primary/5 p-4 text-center">
-                                                <Shield className="mx-auto mb-2 h-8 w-8 text-primary" />
-                                                <div className="text-sm font-semibold">Regulated</div>
-                                                <div className="text-xs text-muted-foreground">& Compliant</div>
-                                            </div>
-                                            <div className="rounded-xl bg-primary/5 p-4 text-center">
-                                                <Globe className="mx-auto mb-2 h-8 w-8 text-primary" />
-                                                <div className="text-sm font-semibold">Global Markets</div>
-                                                <div className="text-xs text-muted-foreground">15+ Indices</div>
-                                            </div>
-                                            <div className="rounded-xl bg-primary/5 p-4 text-center">
-                                                <Target className="mx-auto mb-2 h-8 w-8 text-primary" />
-                                                <div className="text-sm font-semibold">99.9%</div>
-                                                <div className="text-xs text-muted-foreground">Uptime SLA</div>
+                            <div className="order-2 lg:order-1">
+                                <SlideInLeft>
+                                    {about.image ? (
+                                        <img src={`/storage/${about.image}`} alt="About FX Paradox" className="w-full rounded-2xl border shadow-xl" />
+                                    ) : (
+                                        <div className="rounded-2xl border bg-card p-8 shadow-xl">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="rounded-xl bg-primary/5 p-4 text-center">
+                                                    <Award className="mx-auto mb-2 h-8 w-8 text-primary" />
+                                                    <div className="text-sm font-semibold">Award Winning</div>
+                                                    <div className="text-xs text-muted-foreground">Platform 2024</div>
+                                                </div>
+                                                <div className="rounded-xl bg-primary/5 p-4 text-center">
+                                                    <Shield className="mx-auto mb-2 h-8 w-8 text-primary" />
+                                                    <div className="text-sm font-semibold">Regulated</div>
+                                                    <div className="text-xs text-muted-foreground">& Compliant</div>
+                                                </div>
+                                                <div className="rounded-xl bg-primary/5 p-4 text-center">
+                                                    <Globe className="mx-auto mb-2 h-8 w-8 text-primary" />
+                                                    <div className="text-sm font-semibold">Global Markets</div>
+                                                    <div className="text-xs text-muted-foreground">15+ Indices</div>
+                                                </div>
+                                                <div className="rounded-xl bg-primary/5 p-4 text-center">
+                                                    <Target className="mx-auto mb-2 h-8 w-8 text-primary" />
+                                                    <div className="text-sm font-semibold">99.9%</div>
+                                                    <div className="text-xs text-muted-foreground">Uptime SLA</div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-                            </SlideInLeft>
-                            <SlideInRight className="order-1 lg:order-2">
+                                    )}
+                                </SlideInLeft>
+                            </div>
+                            <div className="order-1 lg:order-2">
+                                <SlideInRight>
                                 <h2 className="text-2xl font-bold tracking-tight sm:text-3xl lg:text-4xl">
                                     {about.title ?? 'Why Smart Investors Choose FX Paradox'}
                                 </h2>
@@ -431,6 +461,7 @@ export default function Home() {
                                     </div>
                                 )}
                             </SlideInRight>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -540,10 +571,10 @@ export default function Home() {
                             <div>
                                 <h4 className="text-sm font-semibold">Platform</h4>
                                 <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-                                    <li><a href="#services" className="transition hover:text-foreground">Services</a></li>
-                                    <li><a href="#about" className="transition hover:text-foreground">About Us</a></li>
-                                    <li><a href="#testimonials" className="transition hover:text-foreground">Testimonials</a></li>
-                                    <li><a href="#contact" className="transition hover:text-foreground">Contact</a></li>
+                                    <li><button onClick={() => scrollTo('services')} className="transition hover:text-foreground">Services</button></li>
+                                    <li><button onClick={() => scrollTo('about')} className="transition hover:text-foreground">About Us</button></li>
+                                    <li><button onClick={() => scrollTo('testimonials')} className="transition hover:text-foreground">Testimonials</button></li>
+                                    <li><button onClick={() => scrollTo('contact')} className="transition hover:text-foreground">Contact</button></li>
                                 </ul>
                             </div>
                             <div>
