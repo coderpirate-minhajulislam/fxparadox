@@ -6,12 +6,12 @@ import type { SiteContentGrouped, SiteContentItem } from '@/types/site-content';
 const sectionLabels: Record<string, string> = {
     settings: 'Site Settings',
     hero: 'Hero Section',
-    features: 'Features Section',
-    feature_1: 'Feature 1',
-    feature_2: 'Feature 2',
-    feature_3: 'Feature 3',
+    stats: 'Statistics Bar',
+    services: 'Services Section',
     about: 'About Section',
+    testimonials: 'Testimonials Section',
     cta: 'Call to Action',
+    contact: 'Contact Information',
     footer: 'Footer',
 };
 
@@ -27,7 +27,43 @@ const keyLabels: Record<string, string> = {
     image: 'Image',
     icon: 'Icon Name',
     copyright: 'Copyright Text',
+    stat_1_value: 'Stat 1 Value',
+    stat_1_label: 'Stat 1 Label',
+    stat_2_value: 'Stat 2 Value',
+    stat_2_label: 'Stat 2 Label',
+    stat_3_value: 'Stat 3 Value',
+    stat_3_label: 'Stat 3 Label',
+    stat_4_value: 'Stat 4 Value',
+    stat_4_label: 'Stat 4 Label',
+    service_1_icon: 'Service 1 Icon',
+    service_1_title: 'Service 1 Title',
+    service_1_description: 'Service 1 Description',
+    service_2_icon: 'Service 2 Icon',
+    service_2_title: 'Service 2 Title',
+    service_2_description: 'Service 2 Description',
+    service_3_icon: 'Service 3 Icon',
+    service_3_title: 'Service 3 Title',
+    service_3_description: 'Service 3 Description',
+    service_4_icon: 'Service 4 Icon',
+    service_4_title: 'Service 4 Title',
+    service_4_description: 'Service 4 Description',
+    mission: 'Mission Statement',
+    vision: 'Vision Statement',
+    testimonial_1_name: 'Testimonial 1 Name',
+    testimonial_1_role: 'Testimonial 1 Role',
+    testimonial_1_quote: 'Testimonial 1 Quote',
+    testimonial_2_name: 'Testimonial 2 Name',
+    testimonial_2_role: 'Testimonial 2 Role',
+    testimonial_2_quote: 'Testimonial 2 Quote',
+    testimonial_3_name: 'Testimonial 3 Name',
+    testimonial_3_role: 'Testimonial 3 Role',
+    testimonial_3_quote: 'Testimonial 3 Quote',
+    email: 'Email Address',
+    phone: 'Phone Number',
+    address: 'Office Address',
 };
+
+const sectionOrder = ['hero', 'stats', 'services', 'about', 'testimonials', 'cta', 'contact', 'footer', 'settings'];
 
 export default function SiteContentIndex({ contents }: { contents: SiteContentGrouped }) {
     const [values, setValues] = useState<Record<number, string>>(() => {
@@ -100,7 +136,9 @@ export default function SiteContentIndex({ contents }: { contents: SiteContentGr
         return null;
     };
 
-    const sections = Object.keys(contents);
+    const sortedSections = sectionOrder.filter((s) => contents[s]);
+    const extraSections = Object.keys(contents).filter((s) => !sectionOrder.includes(s));
+    const allSections = [...sortedSections, ...extraSections];
 
     return (
         <>
@@ -108,11 +146,11 @@ export default function SiteContentIndex({ contents }: { contents: SiteContentGr
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 <div>
                     <h2 className="text-2xl font-bold tracking-tight">Edit Home Page</h2>
-                    <p className="text-muted-foreground">Manage all text, images, and icons on the public home page.</p>
+                    <p className="text-muted-foreground">Manage all content, images, and information on the public home page.</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {sections.map((section) => (
+                    {allSections.map((section) => (
                         <div key={section} className="rounded-xl border border-sidebar-border/70 bg-card p-6 dark:border-sidebar-border">
                             <h3 className="mb-4 text-lg font-semibold">{sectionLabels[section] ?? section}</h3>
                             <div className="grid gap-4 md:grid-cols-2">
