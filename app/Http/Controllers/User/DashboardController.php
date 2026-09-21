@@ -78,6 +78,9 @@ class DashboardController extends Controller
         // Session-based win rates
         $sessionWinRates = $this->calcSessionWinRates($user);
 
+        // Day-based win rates
+        $dayWinRates = $this->calcDayWinRates($user);
+
         return Inertia::render('user/dashboard', [
             'stats' => [
                 'totalTrades' => $totalTrades,
@@ -103,6 +106,7 @@ class DashboardController extends Controller
             'dailySummary' => $dailySummary,
             'currentMonth' => $month,
             'sessionWinRates' => $sessionWinRates,
+            'dayWinRates' => $dayWinRates,
         ]);
     }
 
@@ -237,6 +241,39 @@ class DashboardController extends Controller
                 'winRate' => round(($wins / $total) * 100, 1),
             ];
         })->values()->toArray();
+    }
+
+    private function calcDayWinRates($user): array
+    {
+        $dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+        $trades = $user->tradeJournals()
+            ->whereNotNull('result')
+            ->whereNotNull('day')
+            ->select('day', 'result')
+            ->get();
+
+        if ($trades->isEmpty()) {
+            return [];
+        }
+
+        $grouped = $trades->groupBy('day')->map(function ($group, $day) {
+            $total = $group->count();
+            $wins = $group->where('result', 'profit')->count();
+            return [
+                'day' => $day,
+                'total' => $total,
+                'wins' => $wins,
+                'losses' => $total - $wins,
+                'winRate' => round(($wins / $total) * 100, 1),
+            ];
+        });
+
+        return collect($dayOrder)
+            ->filter(fn ($day) => $grouped->has($day))
+            ->map(fn ($day) => $grouped->get($day))
+            ->values()
+            ->toArray();
     }
 
     private function calcPnl($user, $request): array

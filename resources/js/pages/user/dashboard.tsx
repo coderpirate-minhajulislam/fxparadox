@@ -31,7 +31,6 @@ import {
     BarChart,
     Bar,
     Cell,
-    Legend,
 } from 'recharts';
 
 type DayTrade = {
@@ -103,6 +102,14 @@ type SessionWinRate = {
     winRate: number;
 };
 
+type DayWinRate = {
+    day: string;
+    total: number;
+    wins: number;
+    losses: number;
+    winRate: number;
+};
+
 type Props = {
     stats: {
         totalTrades: number;
@@ -122,6 +129,7 @@ type Props = {
     dailySummary: DaySummary[];
     currentMonth: string;
     sessionWinRates: SessionWinRate[];
+    dayWinRates: DayWinRate[];
 };
 
 const defaultStats = { totalTrades: 0, winTrades: 0, lossTrades: 0, winRate: 0, daysTraded: 0, totalProfit: 0, totalLoss: 0, netPnl: 0 };
@@ -259,7 +267,7 @@ function DayCell({ cell, isToday, todayDate, onSelect }: { cell: { day: number |
     );
 }
 
-export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvanced, checklistCompliance: rawCompliance, equityCurve = [], accounts = [], pnlPeriods: rawPnl, dailySummary = [], currentMonth, sessionWinRates = [] }: Props) {
+export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvanced, checklistCompliance: rawCompliance, equityCurve = [], accounts = [], pnlPeriods: rawPnl, dailySummary = [], currentMonth, sessionWinRates = [], dayWinRates = [] }: Props) {
     const stats = rawStats || defaultStats;
     const advanced = rawAdvanced || defaultAdvancedStats;
     const compliance = rawCompliance || defaultCompliance;
@@ -675,76 +683,150 @@ export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvan
                     </Card>
                 </div>
 
-                {/* Session Win Rate Bar Chart */}
-                <Card>
-                    <CardHeader className="pb-3">
-                        <div className="flex items-center gap-2">
-                            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                            <CardTitle className="text-sm font-medium">Session Win Rate</CardTitle>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        {sessionWinRates.length === 0 ? (
-                            <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
-                                Log trades with sessions to see win rate by session
+                {/* Session & Day Win Rate Charts */}
+                <div className="grid gap-4 lg:grid-cols-2">
+                    {/* Session Win Rate */}
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-2">
+                                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                                <CardTitle className="text-sm font-medium">Session Win Rate</CardTitle>
                             </div>
-                        ) : (
-                            <ResponsiveContainer width="100%" height={280}>
-                                <BarChart data={sessionWinRates} layout="vertical" margin={{ top: 8, right: 24, left: 0, bottom: 8 }}>
-                                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} horizontal={false} />
-                                    <XAxis
-                                        type="number"
-                                        tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.5 }}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        tickFormatter={(v) => `${v}%`}
-                                        domain={[0, 100]}
-                                    />
-                                    <YAxis
-                                        type="category"
-                                        dataKey="session"
-                                        tick={{ fontSize: 12, fill: 'currentColor', opacity: 0.7 }}
-                                        tickLine={false}
-                                        axisLine={false}
-                                        width={80}
-                                    />
-                                    <Tooltip
-                                        cursor={{ fill: 'rgba(0,0,0,0.04)' }}
-                                        contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                                        formatter={(value: number, name: string) => {
-                                            if (name === 'winRate') return [`${value}%`, 'Win Rate'];
-                                            return [value, name];
-                                        }}
-                                        labelFormatter={(label) => `Session: ${label}`}
-                                    />
-                                    <Bar dataKey="winRate" radius={[0, 6, 6, 0]} maxBarSize={40}>
-                                        {sessionWinRates.map((entry, index) => (
-                                            <Cell
-                                                key={`cell-${index}`}
-                                                fill={entry.winRate >= 60 ? '#16a34a' : entry.winRate >= 40 ? '#eab308' : '#dc2626'}
-                                            />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        )}
-                        {sessionWinRates.length > 0 && (
-                            <div className="mt-3 flex flex-wrap gap-3">
-                                {sessionWinRates.map((s) => (
-                                    <div key={s.session} className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs">
-                                        <span className="font-medium">{s.session}</span>
-                                        <span className="text-muted-foreground">
-                                            {s.wins}W / {s.losses}L
-                                        </span>
-                                        <span className={`font-semibold ${s.winRate >= 60 ? 'text-green-600' : s.winRate >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                            {s.winRate}%
-                                        </span>
-                                    </div>
-                                ))}
+                        </CardHeader>
+                        <CardContent>
+                            {sessionWinRates.length === 0 ? (
+                                <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                                    Log trades with sessions to see win rate by session
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <BarChart data={sessionWinRates} layout="vertical" margin={{ top: 8, right: 24, left: 0, bottom: 8 }}>
+                                        <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} horizontal={false} />
+                                        <XAxis
+                                            type="number"
+                                            tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.5 }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            tickFormatter={(v) => `${v}%`}
+                                            domain={[0, 100]}
+                                        />
+                                        <YAxis
+                                            type="category"
+                                            dataKey="session"
+                                            tick={{ fontSize: 12, fill: 'currentColor', opacity: 0.7 }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            width={80}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+                                            contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                                            formatter={(value: number, name: string) => {
+                                                if (name === 'winRate') return [`${value}%`, 'Win Rate'];
+                                                return [value, name];
+                                            }}
+                                            labelFormatter={(label) => `Session: ${label}`}
+                                        />
+                                        <Bar dataKey="winRate" radius={[0, 6, 6, 0]} maxBarSize={40}>
+                                            {sessionWinRates.map((entry, index) => (
+                                                <Cell
+                                                    key={`cell-${index}`}
+                                                    fill={entry.winRate >= 60 ? '#16a34a' : entry.winRate >= 40 ? '#eab308' : '#dc2626'}
+                                                />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
+                            {sessionWinRates.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-3">
+                                    {sessionWinRates.map((s) => (
+                                        <div key={s.session} className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs">
+                                            <span className="font-medium">{s.session}</span>
+                                            <span className="text-muted-foreground">
+                                                {s.wins}W / {s.losses}L
+                                            </span>
+                                            <span className={`font-semibold ${s.winRate >= 60 ? 'text-green-600' : s.winRate >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                {s.winRate}%
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    {/* Day Win Rate */}
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-muted-foreground" />
+                                <CardTitle className="text-sm font-medium">Day Win Rate</CardTitle>
                             </div>
-                        )}
-                    </CardContent>
-                </Card>
+                        </CardHeader>
+                        <CardContent>
+                            {dayWinRates.length === 0 ? (
+                                <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+                                    Log trades to see win rate by day
+                                </div>
+                            ) : (
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <BarChart data={dayWinRates} layout="vertical" margin={{ top: 8, right: 24, left: 0, bottom: 8 }}>
+                                        <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.15} horizontal={false} />
+                                        <XAxis
+                                            type="number"
+                                            tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.5 }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            tickFormatter={(v) => `${v}%`}
+                                            domain={[0, 100]}
+                                        />
+                                        <YAxis
+                                            type="category"
+                                            dataKey="day"
+                                            tick={{ fontSize: 12, fill: 'currentColor', opacity: 0.7 }}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            width={80}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+                                            contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                                            formatter={(value: number, name: string) => {
+                                                if (name === 'winRate') return [`${value}%`, 'Win Rate'];
+                                                return [value, name];
+                                            }}
+                                            labelFormatter={(label) => `Day: ${label}`}
+                                        />
+                                        <Bar dataKey="winRate" radius={[0, 6, 6, 0]} maxBarSize={40}>
+                                            {dayWinRates.map((entry, index) => (
+                                                <Cell
+                                                    key={`cell-${index}`}
+                                                    fill={entry.winRate >= 60 ? '#16a34a' : entry.winRate >= 40 ? '#eab308' : '#dc2626'}
+                                                />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
+                            {dayWinRates.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-3">
+                                    {dayWinRates.map((d) => (
+                                        <div key={d.day} className="flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs">
+                                            <span className="font-medium">{d.day}</span>
+                                            <span className="text-muted-foreground">
+                                                {d.wins}W / {d.losses}L
+                                            </span>
+                                            <span className={`font-semibold ${d.winRate >= 60 ? 'text-green-600' : d.winRate >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                                {d.winRate}%
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </div>
 
                 {/* Daily Summary Calendar */}
                 <Card>
