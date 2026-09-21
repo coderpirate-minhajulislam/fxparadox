@@ -75,6 +75,9 @@ class DashboardController extends Controller
                 ])->values(),
             ])->values();
 
+        // Session-based win rates
+        $sessionWinRates = $this->calcSessionWinRates($user);
+
         return Inertia::render('user/dashboard', [
             'stats' => [
                 'totalTrades' => $totalTrades,
@@ -99,6 +102,7 @@ class DashboardController extends Controller
             'pnlPeriods' => $pnlPeriods,
             'dailySummary' => $dailySummary,
             'currentMonth' => $month,
+            'sessionWinRates' => $sessionWinRates,
         ]);
     }
 
@@ -208,6 +212,31 @@ class DashboardController extends Controller
         }
 
         return $curves;
+    }
+
+    private function calcSessionWinRates($user): array
+    {
+        $trades = $user->tradeJournals()
+            ->whereNotNull('result')
+            ->whereNotNull('session')
+            ->select('session', 'result')
+            ->get();
+
+        if ($trades->isEmpty()) {
+            return [];
+        }
+
+        return $trades->groupBy('session')->map(function ($group, $session) {
+            $total = $group->count();
+            $wins = $group->where('result', 'profit')->count();
+            return [
+                'session' => $session,
+                'total' => $total,
+                'wins' => $wins,
+                'losses' => $total - $wins,
+                'winRate' => round(($wins / $total) * 100, 1),
+            ];
+        })->values()->toArray();
     }
 
     private function calcPnl($user, $request): array
