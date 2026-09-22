@@ -18,8 +18,15 @@ class TradingSettingsController extends Controller
             'accounts' => $user->accountBalances()->orderBy('account_name')->get(),
             'checklistRules' => $user->checklistRules()->orderBy('sort_order')->get(),
             'dailyJournalLimit' => $user->daily_journal_limit ?? 5,
-            'defaultRiskPct'   => $user->default_risk_pct ?? 1,
-            'pipValues'        => $user->pip_values ?? [],
+            'defaultRiskPct' => $user->default_risk_pct ?? 1,
+            'pipValues' => $user->pip_values ?? [],
+            'tradingWindow' => [
+                'enabled' => (bool) $user->trading_window_enabled,
+                'start' => $user->trading_window_start,
+                'end' => $user->trading_window_end,
+                'disciplineMessage' => $user->discipline_message,
+                'timezone' => $user->timezone ?? 'Asia/Dhaka',
+            ],
         ]);
     }
 }

@@ -46,6 +46,13 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user,
             ],
+            'tradingWindow' => $user ? [
+                'enabled' => (bool) $user->trading_window_enabled,
+                'start' => $user->trading_window_start,
+                'end' => $user->trading_window_end,
+                'disciplineMessage' => $user->discipline_message,
+                'timezone' => $user->timezone ?? 'Asia/Dhaka',
+            ] : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'flash' => [
                 'success' => $request->session()->get('success'),

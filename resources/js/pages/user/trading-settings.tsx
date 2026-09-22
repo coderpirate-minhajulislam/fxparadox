@@ -1,10 +1,11 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
-import { Pencil, Trash2, Plus, Settings2, DollarSign, BarChart3, ClipboardCheck, CalendarClock } from 'lucide-react';
+import { Pencil, Trash2, Plus, Settings2, DollarSign, BarChart3, ClipboardCheck, CalendarClock, Clock, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import InputError from '@/components/input-error';
 import {
     Table,
@@ -25,6 +26,14 @@ import {
 } from '@/components/ui/alert-dialog';
 import type { TradingPair, TradingSession, AccountBalance, ChecklistRule } from '@/types/trading-settings';
 
+type TradingWindowData = {
+    enabled: boolean;
+    start: string | null;
+    end: string | null;
+    disciplineMessage: string | null;
+    timezone: string;
+};
+
 type Props = {
     pairs: TradingPair[];
     sessions: TradingSession[];
@@ -33,13 +42,15 @@ type Props = {
     dailyJournalLimit: number;
     defaultRiskPct: number;
     pipValues: Record<string, number>;
+    tradingWindow: TradingWindowData;
 };
 
-export default function TradingSettings({ pairs, sessions, accounts, checklistRules, dailyJournalLimit, defaultRiskPct, pipValues }: Props) {
+export default function TradingSettings({ pairs, sessions, accounts, checklistRules, dailyJournalLimit, defaultRiskPct, pipValues, tradingWindow }: Props) {
     return (
         <>
             <Head title="Trading Settings" />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
+                <TradingWindowSection tradingWindow={tradingWindow} />
                 <PairsSection pairs={pairs} />
                 <SessionsSection sessions={sessions} />
                 <AccountsSection accounts={accounts} />
@@ -50,6 +61,179 @@ export default function TradingSettings({ pairs, sessions, accounts, checklistRu
             </div>
         </>
     );
+}
+
+/* ─── Trading Window ─── */
+const TIMEZONES = [
+    { value: 'Pacific/Auckland', label: 'Auckland (GMT+12/+13)' },
+    { value: 'Australia/Sydney', label: 'Sydney (GMT+10/+11)' },
+    { value: 'Asia/Tokyo', label: 'Tokyo (GMT+9)' },
+    { value: 'Asia/Seoul', label: 'Seoul (GMT+9)' },
+    { value: 'Asia/Shanghai', label: 'Shanghai (GMT+8)' },
+    { value: 'Asia/Hong_Kong', label: 'Hong Kong (GMT+8)' },
+    { value: 'Asia/Singapore', label: 'Singapore (GMT+8)' },
+    { value: 'Asia/Kolkata', label: 'Mumbai / Kolkata (GMT+5:30)' },
+    { value: 'Asia/Dhaka', label: 'Dhaka (GMT+6)' },
+    { value: 'Asia/Kathmandu', label: 'Kathmandu (GMT+5:45)' },
+    { value: 'Asia/Dubai', label: 'Dubai (GMT+4)' },
+    { value: 'Europe/Moscow', label: 'Moscow (GMT+3)' },
+    { value: 'Europe/Istanbul', label: 'Istanbul (GMT+3)' },
+    { value: 'Europe/Berlin', label: 'Berlin (GMT+1/+2)' },
+    { value: 'Europe/Paris', label: 'Paris (GMT+1/+2)' },
+    { value: 'Europe/London', label: 'London (GMT+0/+1)' },
+    { value: 'Africa/Lagos', label: 'Lagos (GMT+1)' },
+    { value: 'Africa/Nairobi', label: 'Nairobi (GMT+3)' },
+    { value: 'America/New_York', label: 'New York (GMT-5/-4)' },
+    { value: 'America/Chicago', label: 'Chicago (GMT-6/-5)' },
+    { value: 'America/Denver', label: 'Denver (GMT-7/-6)' },
+    { value: 'America/Los_Angeles', label: 'Los Angeles (GMT-8/-7)' },
+    { value: 'Pacific/Honolulu', label: 'Honolulu (GMT-10)' },
+];
+
+function TradingWindowSection({ tradingWindow }: { tradingWindow: TradingWindowData }) {
+    const form = useForm({
+        trading_window_enabled: tradingWindow.enabled,
+        trading_window_start: tradingWindow.start ?? '13:45',
+        trading_window_end: tradingWindow.end ?? '02:15',
+        discipline_message: tradingWindow.disciplineMessage ?? '',
+        timezone: tradingWindow.timezone ?? 'Asia/Dhaka',
+    });
+
+    function handleSubmit(e: FormEvent) {
+        e.preventDefault();
+        form.patch('/user/settings/trading-window', { preserveScroll: true });
+    }
+
+    const selectedTzLabel = TIMEZONES.find((t) => t.value === form.data.timezone)?.label ?? form.data.timezone;
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5" /> Trading Window (Discipline Timer)
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                        Set your allowed trading hours. Outside this window, you won't be able to add trade journals. A countdown timer will appear on your dashboard.
+                    </p>
+
+                    {/* Enable/Disable Toggle */}
+                    <div className="flex items-center gap-3">
+                        <button
+                            type="button"
+                            onClick={() => form.setData('trading_window_enabled', !form.data.trading_window_enabled)}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                                form.data.trading_window_enabled ? 'bg-green-600' : 'bg-muted'
+                            }`}
+                        >
+                            <span
+                                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                    form.data.trading_window_enabled ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                            />
+                        </button>
+                        <Label className="text-sm font-medium">
+                            {form.data.trading_window_enabled ? 'Enabled' : 'Disabled'}
+                        </Label>
+                    </div>
+
+                    {/* Timezone Selector */}
+                    <div className="space-y-1">
+                        <Label htmlFor="tw-timezone" className="flex items-center gap-1.5">
+                            Your Timezone
+                        </Label>
+                        <select
+                            id="tw-timezone"
+                            value={form.data.timezone}
+                            onChange={(e) => form.setData('timezone', e.target.value)}
+                            className="flex h-9 w-full max-w-md rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-ring"
+                        >
+                            {TIMEZONES.map((tz) => (
+                                <option key={tz.value} value={tz.value}>{tz.label}</option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-muted-foreground">
+                            All times below are in your selected timezone.
+                        </p>
+                        <InputError message={form.errors.timezone} />
+                    </div>
+
+                    {/* Time Inputs */}
+                    <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="space-y-1">
+                            <Label htmlFor="tw-start" className="flex items-center gap-1.5">
+                                <Clock className="h-3.5 w-3.5" /> Start Time
+                            </Label>
+                            <Input
+                                id="tw-start"
+                                type="time"
+                                value={form.data.trading_window_start}
+                                onChange={(e) => form.setData('trading_window_start', e.target.value)}
+                                className="w-40"
+                            />
+                            <InputError message={form.errors.trading_window_start} />
+                        </div>
+                        <div className="space-y-1">
+                            <Label htmlFor="tw-end" className="flex items-center gap-1.5">
+                                <Clock className="h-3.5 w-3.5" /> End Time
+                            </Label>
+                            <Input
+                                id="tw-end"
+                                type="time"
+                                value={form.data.trading_window_end}
+                                onChange={(e) => form.setData('trading_window_end', e.target.value)}
+                                className="w-40"
+                            />
+                            <InputError message={form.errors.trading_window_end} />
+                        </div>
+                    </div>
+
+                    {/* Discipline Message */}
+                    <div className="space-y-1">
+                        <Label htmlFor="discipline-msg">Custom Discipline Message</Label>
+                        <Textarea
+                            id="discipline-msg"
+                            rows={3}
+                            placeholder="e.g. Stay disciplined! Trading outside your window leads to emotional decisions. Trust your plan."
+                            value={form.data.discipline_message}
+                            onChange={(e) => form.setData('discipline_message', e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            This message will be shown when you try to trade outside your allowed window.
+                        </p>
+                        <InputError message={form.errors.discipline_message} />
+                    </div>
+
+                    {/* Preview */}
+                    {form.data.trading_window_enabled && form.data.trading_window_start && form.data.trading_window_end && (
+                        <div className="rounded-lg border bg-muted/30 p-3">
+                            <p className="text-xs font-medium text-muted-foreground">Preview:</p>
+                            <p className="mt-1 text-sm">
+                                Your trading window is{' '}
+                                <span className="font-semibold">
+                                    {formatTime(form.data.trading_window_start)} – {formatTime(form.data.trading_window_end)}
+                                </span>{' '}
+                                ({selectedTzLabel}). A countdown timer will show on your dashboard.
+                            </p>
+                        </div>
+                    )}
+
+                    <Button type="submit" disabled={form.processing} size="sm">
+                        Save Trading Window
+                    </Button>
+                </form>
+            </CardContent>
+        </Card>
+    );
+}
+
+function formatTime(timeStr: string): string {
+    const [h, m] = timeStr.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return `${hour}:${String(m).padStart(2, '0')} ${period}`;
 }
 
 /* ─── Trading Pairs ─── */

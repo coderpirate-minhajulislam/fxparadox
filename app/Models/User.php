@@ -7,11 +7,12 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 
-#[Fillable(['name', 'email', 'password', 'role', 'is_approved', 'is_active', 'daily_journal_limit', 'default_risk_pct', 'pip_values'])]
+#[Fillable(['name', 'email', 'password', 'role', 'is_approved', 'is_active', 'daily_journal_limit', 'default_risk_pct', 'pip_values', 'trading_window_enabled', 'trading_window_start', 'trading_window_end', 'discipline_message', 'timezone'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -19,7 +20,9 @@ class User extends Authenticatable
     use HasFactory, Notifiable, TwoFactorAuthenticatable;
 
     public const ROLE_ADMIN = 'admin';
+
     public const ROLE_MANAGER = 'manager';
+
     public const ROLE_USER = 'user';
 
     public const ROLES = [
@@ -58,37 +61,37 @@ class User extends Authenticatable
         return (bool) $this->is_active;
     }
 
-    public function tradeJournals(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function tradeJournals(): HasMany
     {
         return $this->hasMany(TradeJournal::class);
     }
 
-    public function tradingPairs(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function tradingPairs(): HasMany
     {
         return $this->hasMany(TradingPair::class);
     }
 
-    public function tradingSessions(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function tradingSessions(): HasMany
     {
         return $this->hasMany(TradingSession::class);
     }
 
-    public function accountBalances(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function accountBalances(): HasMany
     {
         return $this->hasMany(AccountBalance::class);
     }
 
-    public function templers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function templers(): HasMany
     {
         return $this->hasMany(Templer::class);
     }
 
-    public function checklistRules(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function checklistRules(): HasMany
     {
         return $this->hasMany(ChecklistRule::class);
     }
 
-    public function notes(): \Illuminate\Database\Eloquent\Relations\HasMany
+    public function notes(): HasMany
     {
         return $this->hasMany(Note::class);
     }
@@ -108,6 +111,9 @@ class User extends Authenticatable
             'is_active' => 'boolean',
             'daily_journal_limit' => 'integer',
             'pip_values' => 'array',
+            'trading_window_enabled' => 'boolean',
+            'trading_window_start' => 'string',
+            'trading_window_end' => 'string',
         ];
     }
 }

@@ -2,16 +2,38 @@
 
 namespace App\Http\Controllers\User;
 
-use App\Http\Controllers\Controller;
 use App\Exports\TradeJournalsExport;
+use App\Http\Controllers\Controller;
+use App\Models\AccountBalance;
 use App\Models\TradeJournal;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
 
 class TradeJournalController extends Controller
 {
+    private function isWithinTradingWindow($user): bool
+    {
+        if (! $user->trading_window_enabled || ! $user->trading_window_start || ! $user->trading_window_end) {
+            return true;
+        }
+
+        $timezone = $user->timezone ?? 'Asia/Dhaka';
+        $userNow = now($timezone);
+        $nowMinutes = $userNow->hour * 60 + $userNow->minute;
+
+        [$startH, $startM] = explode(':', $user->trading_window_start);
+        [$endH, $endM] = explode(':', $user->trading_window_end);
+        $startMinutes = (int) $startH * 60 + (int) $startM;
+        $endMinutes = (int) $endH * 60 + (int) $endM;
+
+        if ($startMinutes <= $endMinutes) {
+            return $nowMinutes >= $startMinutes && $nowMinutes < $endMinutes;
+        }
+
+        return $nowMinutes >= $startMinutes || $nowMinutes < $endMinutes;
+    }
+
     public function index(Request $request)
     {
         $query = $request->user()->tradeJournals()->with('accountBalance');
@@ -19,8 +41,8 @@ class TradeJournalController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('pair', 'like', "%{$search}%")
-                  ->orWhere('trade_comment', 'like', "%{$search}%")
-                  ->orWhere('red_news_time', 'like', "%{$search}%");
+                    ->orWhere('trade_comment', 'like', "%{$search}%")
+                    ->orWhere('red_news_time', 'like', "%{$search}%");
             });
         }
 
@@ -65,6 +87,7 @@ class TradeJournalController extends Controller
         $user = $request->user();
         $dailyLimit = $user->daily_journal_limit ?? 5;
         $todayCount = $user->tradeJournals()->whereDate('created_at', today())->count();
+        $withinWindow = $this->isWithinTradingWindow($user);
 
         return Inertia::render('user/trade-journals/create', [
             'pairs' => $user->tradingPairs()->orderBy('name')->pluck('name'),
@@ -73,6 +96,8 @@ class TradeJournalController extends Controller
             'checklistRules' => $user->checklistRules()->orderBy('sort_order')->pluck('name'),
             'dailyLimit' => $dailyLimit,
             'todayCount' => $todayCount,
+            'withinTradingWindow' => $withinWindow,
+            'disciplineMessage' => $user->discipline_message,
         ]);
     }
 
@@ -119,9 +144,9 @@ class TradeJournalController extends Controller
         foreach (['hft_entry_image', 'mft_entry_image', 'lft_entry_image'] as $imageField) {
             if ($request->hasFile($imageField)) {
                 $file = $request->file($imageField);
-                $filename = time() . '_' . $imageField . '_' . $file->hashName();
+                $filename = time().'_'.$imageField.'_'.$file->hashName();
                 $file->move(public_path('uploads/trade-journals'), $filename);
-                $validated[$imageField] = 'uploads/trade-journals/' . $filename;
+                $validated[$imageField] = 'uploads/trade-journals/'.$filename;
             } else {
                 unset($validated[$imageField]);
             }
@@ -135,13 +160,17 @@ class TradeJournalController extends Controller
             return back()->withErrors(['limit' => "You have reached your daily journal limit of {$dailyLimit} entries."]);
         }
 
+        if (! $this->isWithinTradingWindow($user)) {
+            return back()->withErrors(['trading_window' => 'Trading outside your allowed window is not permitted. Stay disciplined!']);
+        }
+
         $validated['user_id'] = $user->id;
 
         $journal = TradeJournal::create($validated);
 
         // Update account balance with profit/loss
         if ($journal->profit_loss_amount && $journal->account_balance_id) {
-            $account = \App\Models\AccountBalance::find($journal->account_balance_id);
+            $account = AccountBalance::find($journal->account_balance_id);
             if ($account) {
                 $amount = $journal->result === 'loss' ? -abs($journal->profit_loss_amount) : abs($journal->profit_loss_amount);
                 $account->increment('balance', $amount);
@@ -208,9 +237,9 @@ class TradeJournalController extends Controller
                     unlink(public_path($tradeJournal->$imageField));
                 }
                 $file = $request->file($imageField);
-                $filename = time() . '_' . $imageField . '_' . $file->hashName();
+                $filename = time().'_'.$imageField.'_'.$file->hashName();
                 $file->move(public_path('uploads/trade-journals'), $filename);
-                $validated[$imageField] = 'uploads/trade-journals/' . $filename;
+                $validated[$imageField] = 'uploads/trade-journals/'.$filename;
             } elseif (filter_var($request->input("remove_{$imageField}"), FILTER_VALIDATE_BOOLEAN)) {
                 // User explicitly removed the image
                 if ($tradeJournal->$imageField && file_exists(public_path($tradeJournal->$imageField))) {
@@ -225,7 +254,7 @@ class TradeJournalController extends Controller
 
         // Reverse old balance adjustment
         if ($tradeJournal->profit_loss_amount && $tradeJournal->account_balance_id) {
-            $oldAccount = \App\Models\AccountBalance::find($tradeJournal->account_balance_id);
+            $oldAccount = AccountBalance::find($tradeJournal->account_balance_id);
             if ($oldAccount) {
                 $oldAmount = $tradeJournal->result === 'loss' ? abs($tradeJournal->profit_loss_amount) : -abs($tradeJournal->profit_loss_amount);
                 $oldAccount->increment('balance', $oldAmount);
@@ -236,7 +265,7 @@ class TradeJournalController extends Controller
 
         // Apply new balance adjustment
         if ($tradeJournal->profit_loss_amount && $tradeJournal->account_balance_id) {
-            $newAccount = \App\Models\AccountBalance::find($tradeJournal->account_balance_id);
+            $newAccount = AccountBalance::find($tradeJournal->account_balance_id);
             if ($newAccount) {
                 $newAmount = $tradeJournal->result === 'loss' ? -abs($tradeJournal->profit_loss_amount) : abs($tradeJournal->profit_loss_amount);
                 $newAccount->increment('balance', $newAmount);
@@ -262,7 +291,7 @@ class TradeJournalController extends Controller
 
         // Reverse balance adjustment before deleting
         if ($tradeJournal->profit_loss_amount && $tradeJournal->account_balance_id) {
-            $account = \App\Models\AccountBalance::find($tradeJournal->account_balance_id);
+            $account = AccountBalance::find($tradeJournal->account_balance_id);
             if ($account) {
                 $amount = $tradeJournal->result === 'loss' ? abs($tradeJournal->profit_loss_amount) : -abs($tradeJournal->profit_loss_amount);
                 $account->increment('balance', $amount);
@@ -282,19 +311,31 @@ class TradeJournalController extends Controller
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('pair', 'like', "%{$search}%")
-                  ->orWhere('trade_comment', 'like', "%{$search}%");
+                    ->orWhere('trade_comment', 'like', "%{$search}%");
             });
         }
-        if ($pair = $request->input('pair'))      $query->where('pair', $pair);
-        if ($session = $request->input('session')) $query->where('session', $session);
-        if ($result = $request->input('result'))   $query->where('result', $result);
-        if ($direction = $request->input('direction')) $query->where('direction', $direction);
-        if ($dateFrom = $request->input('date_from')) $query->whereDate('trade_date', '>=', $dateFrom);
-        if ($dateTo = $request->input('date_to'))     $query->whereDate('trade_date', '<=', $dateTo);
+        if ($pair = $request->input('pair')) {
+            $query->where('pair', $pair);
+        }
+        if ($session = $request->input('session')) {
+            $query->where('session', $session);
+        }
+        if ($result = $request->input('result')) {
+            $query->where('result', $result);
+        }
+        if ($direction = $request->input('direction')) {
+            $query->where('direction', $direction);
+        }
+        if ($dateFrom = $request->input('date_from')) {
+            $query->whereDate('trade_date', '>=', $dateFrom);
+        }
+        if ($dateTo = $request->input('date_to')) {
+            $query->whereDate('trade_date', '<=', $dateTo);
+        }
 
         $journals = $query->orderByDesc('trade_date')->orderByDesc('created_at')->get();
 
-        $filename = 'trade-journal-' . now()->format('Y-m-d') . '.xlsx';
+        $filename = 'trade-journal-'.now()->format('Y-m-d').'.xlsx';
 
         return Excel::download(new TradeJournalsExport($journals), $filename);
     }

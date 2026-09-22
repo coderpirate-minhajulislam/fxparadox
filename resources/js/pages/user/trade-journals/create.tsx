@@ -9,6 +9,7 @@ import {
     DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { ShieldAlert } from 'lucide-react';
 
 type Props = {
     pairs: string[];
@@ -17,13 +18,51 @@ type Props = {
     checklistRules: string[];
     dailyLimit: number;
     todayCount: number;
+    withinTradingWindow: boolean;
+    disciplineMessage: string | null;
 };
 
-export default function CreateTradeJournal({ pairs, sessions, accounts, checklistRules, dailyLimit, todayCount }: Props) {
+const DEFAULT_DISCIPLINE_MSG = 'Discipline is the foundation of consistent trading. Respect your trading hours, review your plan, and wait for your next window. Patience pays!';
+
+export default function CreateTradeJournal({ pairs, sessions, accounts, checklistRules, dailyLimit, todayCount, withinTradingWindow, disciplineMessage }: Props) {
     const limitReached = todayCount >= dailyLimit;
+    const windowBlocked = !withinTradingWindow;
+    const message = disciplineMessage || DEFAULT_DISCIPLINE_MSG;
 
     function handleClose() {
         router.visit('/user/trade-journals');
+    }
+
+    if (windowBlocked) {
+        return (
+            <>
+                <Head title="Outside Trading Window" />
+                <div className="flex h-full flex-1 items-center justify-center p-4">
+                    <Dialog open={true} onOpenChange={(open) => !open && handleClose()}>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                                    <ShieldAlert className="h-5 w-5" />
+                                    Trading Window Closed
+                                </DialogTitle>
+                                <DialogDescription className="pt-1 text-base">
+                                    You are currently outside your configured trading window.
+                                    <br /><br />
+                                    <span className="font-medium text-foreground">
+                                        {message}
+                                    </span>
+                                </DialogDescription>
+                            </DialogHeader>
+                            <DialogFooter>
+                                <Button asChild>
+                                    <Link href="/user/trade-journals">Back to Journals</Link>
+                                </Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                </div>
+            </>
+        );
     }
 
     if (limitReached) {

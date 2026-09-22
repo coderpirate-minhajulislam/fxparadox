@@ -3,24 +3,29 @@
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ExportUsersController;
 use App\Http\Controllers\Admin\SiteContentController;
+use App\Http\Controllers\Admin\UserApprovalController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ForexNewsController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Manager\DashboardController as ManagerDashboardController;
 use App\Http\Controllers\User\AccountBalanceController;
 use App\Http\Controllers\User\ChecklistRuleController;
+use App\Http\Controllers\User\DailyJournalLimitController;
 use App\Http\Controllers\User\DashboardController as UserDashboardController;
+use App\Http\Controllers\User\DefaultRiskController;
 use App\Http\Controllers\User\EconomicCalendarController;
 use App\Http\Controllers\User\NoteController;
+use App\Http\Controllers\User\PipValuesController;
+use App\Http\Controllers\User\PositionCalculatorController;
 use App\Http\Controllers\User\TemplerController;
 use App\Http\Controllers\User\TradeJournalController;
 use App\Http\Controllers\User\TradingPairController;
 use App\Http\Controllers\User\TradingSessionController;
-use App\Http\Controllers\User\PositionCalculatorController;
 use App\Http\Controllers\User\TradingSettingsController;
+use App\Http\Controllers\User\TradingWindowController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
-use Laravel\Fortify\Features;
+use Inertia\Inertia;
 
 Route::get('/', HomeController::class)->name('home');
 
@@ -30,7 +35,7 @@ Route::middleware(['auth'])->get('approval/pending', function () {
         return redirect()->route('dashboard');
     }
 
-    return \Inertia\Inertia::render('auth/approval-pending');
+    return Inertia::render('auth/approval-pending');
 })->name('approval.pending');
 
 // Redirect /dashboard to the correct role-based dashboard
@@ -50,10 +55,10 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
     Route::get('users/export/excel', [ExportUsersController::class, 'excel'])->name('users.export.excel');
     Route::get('users/export/pdf', [ExportUsersController::class, 'pdf'])->name('users.export.pdf');
     Route::resource('users', UserController::class)->except(['show']);
-    Route::post('users/{user}/approve', [\App\Http\Controllers\Admin\UserApprovalController::class, 'approve'])->name('users.approve');
-    Route::post('users/{user}/reject', [\App\Http\Controllers\Admin\UserApprovalController::class, 'reject'])->name('users.reject');
-    Route::post('users/{user}/activate', [\App\Http\Controllers\Admin\UserApprovalController::class, 'activate'])->name('users.activate');
-    Route::post('users/{user}/deactivate', [\App\Http\Controllers\Admin\UserApprovalController::class, 'deactivate'])->name('users.deactivate');
+    Route::post('users/{user}/approve', [UserApprovalController::class, 'approve'])->name('users.approve');
+    Route::post('users/{user}/reject', [UserApprovalController::class, 'reject'])->name('users.reject');
+    Route::post('users/{user}/activate', [UserApprovalController::class, 'activate'])->name('users.activate');
+    Route::post('users/{user}/deactivate', [UserApprovalController::class, 'deactivate'])->name('users.deactivate');
     Route::get('site-content', [SiteContentController::class, 'index'])->name('site-content.index');
     Route::post('site-content', [SiteContentController::class, 'update'])->name('site-content.update');
 });
@@ -80,9 +85,10 @@ Route::middleware(['auth', 'verified', 'approved', 'role:user'])->prefix('user')
     Route::resource('trading-sessions', TradingSessionController::class)->only(['store', 'update', 'destroy']);
     Route::resource('account-balances', AccountBalanceController::class)->only(['store', 'update', 'destroy']);
     Route::resource('checklist-rules', ChecklistRuleController::class)->only(['store', 'update', 'destroy']);
-    Route::patch('settings/daily-journal-limit', [\App\Http\Controllers\User\DailyJournalLimitController::class, 'update'])->name('daily-journal-limit.update');
-    Route::patch('settings/default-risk', [\App\Http\Controllers\User\DefaultRiskController::class, 'update'])->name('default-risk.update');
-    Route::patch('settings/pip-values', [\App\Http\Controllers\User\PipValuesController::class, 'update'])->name('pip-values.update');
+    Route::patch('settings/daily-journal-limit', [DailyJournalLimitController::class, 'update'])->name('daily-journal-limit.update');
+    Route::patch('settings/default-risk', [DefaultRiskController::class, 'update'])->name('default-risk.update');
+    Route::patch('settings/pip-values', [PipValuesController::class, 'update'])->name('pip-values.update');
+    Route::patch('settings/trading-window', [TradingWindowController::class, 'update'])->name('trading-window.update');
 });
 
 require __DIR__.'/settings.php';
