@@ -731,7 +731,7 @@ export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvan
                                             {sessionWinRates.map((entry, index) => (
                                                 <Cell
                                                     key={`cell-${index}`}
-                                                    fill={entry.winRate >= 60 ? '#16a34a' : entry.winRate >= 40 ? '#eab308' : '#dc2626'}
+                                                    fill={entry.winRate >= 60 ? '#16a34a' : entry.winRate >= 40 ? '#3b82f6' : entry.winRate >= 30 ? '#eab308' : entry.winRate >= 20 ? '#f97316' : '#dc2626'}
                                                 />
                                             ))}
                                         </Bar>
@@ -746,7 +746,7 @@ export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvan
                                             <span className="text-muted-foreground">
                                                 {s.wins}W / {s.losses}L
                                             </span>
-                                            <span className={`font-semibold ${s.winRate >= 60 ? 'text-green-600' : s.winRate >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                            <span className={`font-semibold ${s.winRate >= 60 ? 'text-green-600' : s.winRate >= 40 ? 'text-blue-600' : s.winRate >= 30 ? 'text-yellow-600' : s.winRate >= 20 ? 'text-orange-500' : 'text-red-600'}`}>
                                                 {s.winRate}%
                                             </span>
                                         </div>
@@ -802,7 +802,7 @@ export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvan
                                             {dayWinRates.map((entry, index) => (
                                                 <Cell
                                                     key={`cell-${index}`}
-                                                    fill={entry.winRate >= 60 ? '#16a34a' : entry.winRate >= 40 ? '#eab308' : '#dc2626'}
+                                                    fill={entry.winRate >= 60 ? '#16a34a' : entry.winRate >= 40 ? '#3b82f6' : entry.winRate >= 30 ? '#eab308' : entry.winRate >= 20 ? '#f97316' : '#dc2626'}
                                                 />
                                             ))}
                                         </Bar>
@@ -817,7 +817,7 @@ export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvan
                                             <span className="text-muted-foreground">
                                                 {d.wins}W / {d.losses}L
                                             </span>
-                                            <span className={`font-semibold ${d.winRate >= 60 ? 'text-green-600' : d.winRate >= 40 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                            <span className={`font-semibold ${d.winRate >= 60 ? 'text-green-600' : d.winRate >= 40 ? 'text-blue-600' : d.winRate >= 30 ? 'text-yellow-600' : d.winRate >= 20 ? 'text-orange-500' : 'text-red-600'}`}>
                                                 {d.winRate}%
                                             </span>
                                         </div>
@@ -946,7 +946,10 @@ export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvan
                                             <div>
                                                 <div className="font-medium">{trade.pair}</div>
                                                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                                                    <Badge variant={trade.direction === 'long' ? 'default' : 'secondary'} className="text-[10px] px-1.5 py-0">
+                                                    <Badge
+                                                        variant="default"
+                                                        className="text-[10px] px-1.5 py-0"
+                                                    >
                                                         {trade.direction?.toUpperCase()}
                                                     </Badge>
                                                     <span>{trade.session}</span>
