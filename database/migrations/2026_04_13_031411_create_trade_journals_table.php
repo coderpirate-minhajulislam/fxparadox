@@ -20,11 +20,11 @@ return new class extends Migration
             $table->string('pair');
             $table->string('session');
             $table->string('hft_market_trend');
-            $table->string('mft_market_trend');
+            $table->string('lft_market_trend');
             $table->enum('direction', ['long', 'short']);
             $table->string('risk_reward')->nullable();
             $table->decimal('lot_size', 10, 2)->nullable();
-            $table->enum('result', ['profit', 'loss'])->nullable();
+            $table->enum('result', ['profit', 'loss', 'break_even'])->nullable();
             $table->decimal('profit_loss_amount', 15, 2)->nullable();
             $table->text('trade_comment')->nullable();
             $table->string('hft_entry_image')->nullable();
