@@ -18,7 +18,7 @@ class TradeJournal extends Model
         'pair',
         'session',
         'hft_market_trend',
-        'mft_market_trend',
+        'lft_market_trend',
         'direction',
         'risk_reward',
         'lot_size',
@@ -40,7 +40,7 @@ class TradeJournal extends Model
             'lot_size' => 'decimal:2',
             'profit_loss_amount' => 'decimal:2',
             'checklist' => 'array',
-            'tags'      => 'array',
+            'tags' => 'array',
         ];
     }
 
@@ -51,6 +51,6 @@ class TradeJournal extends Model
 
     public function accountBalance(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\AccountBalance::class);
+        return $this->belongsTo(AccountBalance::class);
     }
 }

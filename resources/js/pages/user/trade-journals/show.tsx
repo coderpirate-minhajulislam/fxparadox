@@ -49,8 +49,17 @@ export default function ShowTradeJournal({ journal }: Props) {
                                     {journal.direction.toUpperCase()}
                                 </Badge>
                                 {journal.result && (
-                                    <Badge className={journal.result === 'profit' ? 'bg-green-600 hover:bg-green-700 text-white' : ''} variant={journal.result === 'profit' ? 'default' : 'destructive'}>
-                                        {journal.result.toUpperCase()}
+                                    <Badge
+                                        className={
+                                            journal.result === 'profit'
+                                                ? 'bg-green-600 hover:bg-green-700 text-white'
+                                                : journal.result === 'break_even'
+                                                  ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                                                  : ''
+                                        }
+                                        variant={journal.result === 'profit' ? 'default' : journal.result === 'break_even' ? 'outline' : 'destructive'}
+                                    >
+                                        {journal.result === 'break_even' ? 'BREAK EVEN' : journal.result.toUpperCase()}
                                     </Badge>
                                 )}
                             </div>
@@ -74,7 +83,7 @@ export default function ShowTradeJournal({ journal }: Props) {
                     <CardContent>
                         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
                             <DetailItem label="HFT Market Trend" value={journal.hft_market_trend} />
-                            <DetailItem label="MFT Market Trend" value={journal.mft_market_trend} />
+                            <DetailItem label="LFT Market Trend" value={journal.lft_market_trend} />
                             <DetailItem label="Direction" value={journal.direction.toUpperCase()} />
                             <DetailItem label="Risk : Reward" value={journal.risk_reward || '-'} />
                         </div>
@@ -93,8 +102,8 @@ export default function ShowTradeJournal({ journal }: Props) {
                             <div className="space-y-1">
                                 <p className="text-sm font-medium text-muted-foreground">P/L Amount</p>
                                 {journal.profit_loss_amount != null ? (
-                                    <p className={`text-lg font-bold ${journal.result === 'profit' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                        {journal.result === 'profit' ? '+' : '-'}${Math.abs(Number(journal.profit_loss_amount)).toFixed(2)}
+                                    <p className={`text-lg font-bold ${journal.result === 'profit' ? 'text-green-600 dark:text-green-400' : journal.result === 'break_even' ? 'text-yellow-600 dark:text-yellow-400' : 'text-red-600 dark:text-red-400'}`}>
+                                        {journal.result === 'profit' ? '+' : journal.result === 'break_even' ? '' : '-'}${Math.abs(Number(journal.profit_loss_amount)).toFixed(2)}
                                     </p>
                                 ) : (
                                     <p className="text-lg">-</p>

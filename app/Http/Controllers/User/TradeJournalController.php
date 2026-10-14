@@ -123,11 +123,11 @@ class TradeJournalController extends Controller
             'pair' => ['required', 'string', 'max:20'],
             'session' => ['required', 'string', 'max:50'],
             'hft_market_trend' => ['required', 'string', 'max:50'],
-            'mft_market_trend' => ['required', 'string', 'max:50'],
+            'lft_market_trend' => ['required', 'string', 'max:50'],
             'direction' => ['required', 'in:long,short'],
             'risk_reward' => ['nullable', 'string', 'max:20'],
             'lot_size' => ['nullable', 'numeric', 'min:0.01'],
-            'result' => ['nullable', 'in:profit,loss'],
+            'result' => ['nullable', 'in:profit,loss,break_even'],
             'profit_loss_amount' => ['nullable', 'numeric'],
             'trade_comment' => ['nullable', 'string', 'max:2000'],
             'hft_entry_image' => ['nullable', 'image', 'max:5120'],
@@ -168,8 +168,8 @@ class TradeJournalController extends Controller
 
         $journal = TradeJournal::create($validated);
 
-        // Update account balance with profit/loss
-        if ($journal->profit_loss_amount && $journal->account_balance_id) {
+        // Update account balance with profit/loss (break-even trades have no balance impact)
+        if ($journal->profit_loss_amount && $journal->account_balance_id && in_array($journal->result, ['profit', 'loss'])) {
             $account = AccountBalance::find($journal->account_balance_id);
             if ($account) {
                 $amount = $journal->result === 'loss' ? -abs($journal->profit_loss_amount) : abs($journal->profit_loss_amount);
@@ -209,11 +209,11 @@ class TradeJournalController extends Controller
             'pair' => ['required', 'string', 'max:20'],
             'session' => ['required', 'string', 'max:50'],
             'hft_market_trend' => ['required', 'string', 'max:50'],
-            'mft_market_trend' => ['required', 'string', 'max:50'],
+            'lft_market_trend' => ['required', 'string', 'max:50'],
             'direction' => ['required', 'in:long,short'],
             'risk_reward' => ['nullable', 'string', 'max:20'],
             'lot_size' => ['nullable', 'numeric', 'min:0.01'],
-            'result' => ['nullable', 'in:profit,loss'],
+            'result' => ['nullable', 'in:profit,loss,break_even'],
             'profit_loss_amount' => ['nullable', 'numeric'],
             'trade_comment' => ['nullable', 'string', 'max:2000'],
             'hft_entry_image' => ['nullable', 'image', 'max:5120'],
@@ -252,8 +252,8 @@ class TradeJournalController extends Controller
             unset($validated["remove_{$imageField}"]);
         }
 
-        // Reverse old balance adjustment
-        if ($tradeJournal->profit_loss_amount && $tradeJournal->account_balance_id) {
+        // Reverse old balance adjustment (break-even trades have no balance impact)
+        if ($tradeJournal->profit_loss_amount && $tradeJournal->account_balance_id && in_array($tradeJournal->result, ['profit', 'loss'])) {
             $oldAccount = AccountBalance::find($tradeJournal->account_balance_id);
             if ($oldAccount) {
                 $oldAmount = $tradeJournal->result === 'loss' ? abs($tradeJournal->profit_loss_amount) : -abs($tradeJournal->profit_loss_amount);
@@ -263,8 +263,8 @@ class TradeJournalController extends Controller
 
         $tradeJournal->update($validated);
 
-        // Apply new balance adjustment
-        if ($tradeJournal->profit_loss_amount && $tradeJournal->account_balance_id) {
+        // Apply new balance adjustment (break-even trades have no balance impact)
+        if ($tradeJournal->profit_loss_amount && $tradeJournal->account_balance_id && in_array($tradeJournal->result, ['profit', 'loss'])) {
             $newAccount = AccountBalance::find($tradeJournal->account_balance_id);
             if ($newAccount) {
                 $newAmount = $tradeJournal->result === 'loss' ? -abs($tradeJournal->profit_loss_amount) : abs($tradeJournal->profit_loss_amount);
@@ -289,8 +289,8 @@ class TradeJournalController extends Controller
             }
         }
 
-        // Reverse balance adjustment before deleting
-        if ($tradeJournal->profit_loss_amount && $tradeJournal->account_balance_id) {
+        // Reverse balance adjustment before deleting (break-even trades have no balance impact)
+        if ($tradeJournal->profit_loss_amount && $tradeJournal->account_balance_id && in_array($tradeJournal->result, ['profit', 'loss'])) {
             $account = AccountBalance::find($tradeJournal->account_balance_id);
             if ($account) {
                 $amount = $tradeJournal->result === 'loss' ? abs($tradeJournal->profit_loss_amount) : -abs($tradeJournal->profit_loss_amount);

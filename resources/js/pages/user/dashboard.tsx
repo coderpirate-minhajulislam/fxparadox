@@ -37,7 +37,7 @@ type DayTrade = {
     id: number;
     pair: string;
     direction: 'long' | 'short';
-    result: 'profit' | 'loss' | null;
+    result: 'profit' | 'loss' | 'break_even' | null;
     profit_loss_amount: number;
     session: string;
 };
@@ -115,6 +115,7 @@ type Props = {
         totalTrades: number;
         winTrades: number;
         lossTrades: number;
+        breakEvenTrades: number;
         winRate: number;
         daysTraded: number;
         totalProfit: number;
@@ -132,7 +133,7 @@ type Props = {
     dayWinRates: DayWinRate[];
 };
 
-const defaultStats = { totalTrades: 0, winTrades: 0, lossTrades: 0, winRate: 0, daysTraded: 0, totalProfit: 0, totalLoss: 0, netPnl: 0 };
+const defaultStats = { totalTrades: 0, winTrades: 0, lossTrades: 0, breakEvenTrades: 0, winRate: 0, daysTraded: 0, totalProfit: 0, totalLoss: 0, netPnl: 0 };
 const defaultAdvancedStats: AdvancedStats = { profitFactor: 0, avgWin: 0, avgLoss: 0, maxWinStreak: 0, maxLossStreak: 0 };
 const defaultCompliance: ChecklistCompliance = { score: null, fullWinRate: null, fullTrades: 0, partialWinRate: null, partialTrades: 0 };
 const defaultPnlStat: PnlStat = { net: 0, profit: 0, loss: 0, trades: 0 };
@@ -341,7 +342,7 @@ export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvan
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.totalTrades}</div>
                             <p className="text-xs text-muted-foreground">
-                                {stats.winTrades} wins / {stats.lossTrades} losses
+                                {stats.winTrades} wins / {stats.lossTrades} losses{stats.breakEvenTrades > 0 ? ` / ${stats.breakEvenTrades} BE` : ''}
                             </p>
                         </CardContent>
                     </Card>
@@ -354,7 +355,8 @@ export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvan
                         <CardContent>
                             <div className="text-2xl font-bold">{stats.winRate}%</div>
                             <p className="text-xs text-muted-foreground">
-                                Based on {stats.totalTrades} trade{stats.totalTrades !== 1 ? 's' : ''}
+                                Based on {stats.winTrades + stats.lossTrades} decisive trade{(stats.winTrades + stats.lossTrades) !== 1 ? 's' : ''}
+                                {stats.breakEvenTrades > 0 ? ` (${stats.breakEvenTrades} BE excluded)` : ''}
                             </p>
                         </CardContent>
                     </Card>
@@ -960,19 +962,21 @@ export default function UserDashboard({ stats: rawStats, advancedStats: rawAdvan
                                             {trade.result && (
                                                 <>
                                                     <Badge
-                                                        variant={trade.result === 'profit' ? 'default' : 'destructive'}
-                                                        className={trade.result === 'profit' ? 'bg-green-600' : ''}
+                                                        variant={trade.result === 'profit' ? 'default' : trade.result === 'break_even' ? 'outline' : 'destructive'}
+                                                        className={trade.result === 'profit' ? 'bg-green-600' : trade.result === 'break_even' ? 'border-yellow-500 bg-yellow-500 text-white' : ''}
                                                     >
-                                                        {trade.result.toUpperCase()}
+                                                        {trade.result === 'break_even' ? 'BREAK EVEN' : trade.result.toUpperCase()}
                                                     </Badge>
                                                     <div
                                                         className={`mt-0.5 text-sm font-semibold ${
                                                             trade.result === 'profit'
                                                                 ? 'text-green-600'
-                                                                : 'text-red-600'
+                                                                : trade.result === 'break_even'
+                                                                  ? 'text-yellow-600'
+                                                                  : 'text-red-600'
                                                         }`}
                                                     >
-                                                        {trade.result === 'profit' ? '+' : '-'}$
+                                                        {trade.result === 'profit' ? '+' : trade.result === 'break_even' ? '' : '-'}$
                                                         {Math.abs(trade.profit_loss_amount).toFixed(2)}
                                                     </div>
                                                 </>

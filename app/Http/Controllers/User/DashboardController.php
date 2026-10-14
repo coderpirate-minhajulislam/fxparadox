@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\TradeJournal;
+use Carbon\CarbonInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Inertia\Inertia;
@@ -19,7 +19,9 @@ class DashboardController extends Controller
         $totalTrades = $journals->count();
         $winTrades = $journals->clone()->where('result', 'profit')->count();
         $lossTrades = $journals->clone()->where('result', 'loss')->count();
-        $winRate = $totalTrades > 0 ? round(($winTrades / $totalTrades) * 100, 1) : 0;
+        $breakEvenTrades = $journals->clone()->where('result', 'break_even')->count();
+        $decisiveTrades = $winTrades + $lossTrades;
+        $winRate = $decisiveTrades > 0 ? round(($winTrades / $decisiveTrades) * 100, 1) : 0;
         $daysTraded = $journals->clone()->distinct('trade_date')->count('trade_date');
 
         $totalProfit = $journals->clone()->where('result', 'profit')->sum('profit_loss_amount');
@@ -86,6 +88,7 @@ class DashboardController extends Controller
                 'totalTrades' => $totalTrades,
                 'winTrades' => $winTrades,
                 'lossTrades' => $lossTrades,
+                'breakEvenTrades' => $breakEvenTrades,
                 'winRate' => $winRate,
                 'daysTraded' => $daysTraded,
                 'totalProfit' => (float) $totalProfit,
@@ -119,19 +122,22 @@ class DashboardController extends Controller
             ->pluck('result')
             ->toArray();
 
-        $maxWin = 0; $maxLoss = 0;
-        $curWin = 0; $curLoss = 0;
+        $maxWin = 0;
+        $maxLoss = 0;
+        $curWin = 0;
+        $curLoss = 0;
 
         foreach ($trades as $result) {
             if ($result === 'profit') {
                 $curWin++;
                 $curLoss = 0;
                 $maxWin = max($maxWin, $curWin);
-            } else {
+            } elseif ($result === 'loss') {
                 $curLoss++;
                 $curWin = 0;
                 $maxLoss = max($maxLoss, $curLoss);
             }
+            // break_even trades do not affect streaks
         }
 
         return ['maxWin' => $maxWin, 'maxLoss' => $maxLoss];
@@ -146,7 +152,7 @@ class DashboardController extends Controller
         }
 
         $trades = $user->tradeJournals()
-            ->whereNotNull('result')
+            ->whereIn('result', ['profit', 'loss'])
             ->select('result', 'checklist')
             ->get();
 
@@ -154,9 +160,12 @@ class DashboardController extends Controller
             return ['score' => null, 'fullWinRate' => null, 'fullTrades' => 0, 'partialWinRate' => null, 'partialTrades' => 0];
         }
 
-        $totalChecked = 0; $totalPossible = 0;
-        $fullWins = 0; $fullTrades = 0;
-        $partialWins = 0; $partialTrades = 0;
+        $totalChecked = 0;
+        $totalPossible = 0;
+        $fullWins = 0;
+        $fullTrades = 0;
+        $partialWins = 0;
+        $partialTrades = 0;
 
         foreach ($trades as $trade) {
             $checklist = is_array($trade->checklist) ? $trade->checklist : [];
@@ -166,10 +175,14 @@ class DashboardController extends Controller
 
             if ($checked >= $totalRules) {
                 $fullTrades++;
-                if ($trade->result === 'profit') $fullWins++;
+                if ($trade->result === 'profit') {
+                    $fullWins++;
+                }
             } else {
                 $partialTrades++;
-                if ($trade->result === 'profit') $partialWins++;
+                if ($trade->result === 'profit') {
+                    $partialWins++;
+                }
             }
         }
 
@@ -200,9 +213,11 @@ class DashboardController extends Controller
             $points = [['date' => null, 'balance' => $balance]];
 
             foreach ($trades as $trade) {
-                $amount = $trade->result === 'loss'
-                    ? -abs((float) $trade->profit_loss_amount)
-                    : abs((float) $trade->profit_loss_amount);
+                $amount = match ($trade->result) {
+                    'loss' => -abs((float) $trade->profit_loss_amount),
+                    'profit' => abs((float) $trade->profit_loss_amount),
+                    default => 0.0,
+                };
                 $balance = round($balance + $amount, 2);
                 $points[] = ['date' => $trade->trade_date->format('Y-m-d'), 'balance' => $balance];
             }
@@ -221,7 +236,7 @@ class DashboardController extends Controller
     private function calcSessionWinRates($user): array
     {
         $trades = $user->tradeJournals()
-            ->whereNotNull('result')
+            ->whereIn('result', ['profit', 'loss'])
             ->whereNotNull('session')
             ->select('session', 'result')
             ->get();
@@ -233,6 +248,7 @@ class DashboardController extends Controller
         return $trades->groupBy('session')->map(function ($group, $session) {
             $total = $group->count();
             $wins = $group->where('result', 'profit')->count();
+
             return [
                 'session' => $session,
                 'total' => $total,
@@ -248,7 +264,7 @@ class DashboardController extends Controller
         $dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
         $trades = $user->tradeJournals()
-            ->whereNotNull('result')
+            ->whereIn('result', ['profit', 'loss'])
             ->whereNotNull('day')
             ->select('day', 'result')
             ->get();
@@ -260,6 +276,7 @@ class DashboardController extends Controller
         $grouped = $trades->groupBy('day')->map(function ($group, $day) {
             $total = $group->count();
             $wins = $group->where('result', 'profit')->count();
+
             return [
                 'day' => $day,
                 'total' => $total,
@@ -282,36 +299,37 @@ class DashboardController extends Controller
 
         // Custom period from query params
         $customFrom = $request->input('pnl_from');
-        $customTo   = $request->input('pnl_to');
+        $customTo = $request->input('pnl_to');
 
-        $calc = function (\Carbon\CarbonInterface $from, \Carbon\CarbonInterface $to) use ($user) {
+        $calc = function (CarbonInterface $from, CarbonInterface $to) use ($user) {
             $q = $user->tradeJournals()
                 ->whereBetween('trade_date', [$from->toDateString(), $to->toDateString()]);
             $profit = (float) (clone $q)->where('result', 'profit')->sum('profit_loss_amount');
-            $loss   = (float) (clone $q)->where('result', 'loss')->sum('profit_loss_amount');
+            $loss = (float) (clone $q)->where('result', 'loss')->sum('profit_loss_amount');
             $trades = (clone $q)->count();
+
             return [
-                'net'    => round($profit - $loss, 2),
+                'net' => round($profit - $loss, 2),
                 'profit' => round($profit, 2),
-                'loss'   => round($loss, 2),
+                'loss' => round($loss, 2),
                 'trades' => $trades,
             ];
         };
 
         $result = [
-            'today'     => $calc($now->copy()->startOfDay(), $now->copy()->endOfDay()),
+            'today' => $calc($now->copy()->startOfDay(), $now->copy()->endOfDay()),
             'yesterday' => $calc($now->copy()->subDay()->startOfDay(), $now->copy()->subDay()->endOfDay()),
-            'lastWeek'  => $calc($now->copy()->subWeek()->startOfWeek(), $now->copy()->subWeek()->endOfWeek()),
+            'lastWeek' => $calc($now->copy()->subWeek()->startOfWeek(), $now->copy()->subWeek()->endOfWeek()),
             'lastMonth' => $calc($now->copy()->subMonth()->startOfMonth(), $now->copy()->subMonth()->endOfMonth()),
-            'custom'    => null,
+            'custom' => null,
             'customFrom' => $customFrom,
-            'customTo'   => $customTo,
+            'customTo' => $customTo,
         ];
 
         if ($customFrom && $customTo) {
             try {
                 $from = Carbon::parse($customFrom)->startOfDay();
-                $to   = Carbon::parse($customTo)->endOfDay();
+                $to = Carbon::parse($customTo)->endOfDay();
                 $result['custom'] = $calc($from, $to);
             } catch (\Exception $e) {
                 // invalid dates — leave null

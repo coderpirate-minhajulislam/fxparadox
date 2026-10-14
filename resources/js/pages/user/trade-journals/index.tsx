@@ -194,6 +194,7 @@ export default function TradeJournalIndex({ journals, filters, availablePairs, a
                                 <option value="">All Results</option>
                                 <option value="profit">Profit</option>
                                 <option value="loss">Loss</option>
+                                <option value="break_even">Break Even</option>
                             </select>
                             <select
                                 value={direction}
@@ -264,7 +265,7 @@ export default function TradeJournalIndex({ journals, filters, availablePairs, a
                                             <TableHead>Pair</TableHead>
                                             <TableHead>Session</TableHead>
                                             <TableHead>HFT Trend</TableHead>
-                                            <TableHead>MFT Trend</TableHead>
+                                            <TableHead>LFT Trend</TableHead>
                                             <TableHead>Direction</TableHead>
                                             <TableHead>RR</TableHead>
                                             <TableHead>Lot Size</TableHead>
@@ -277,7 +278,7 @@ export default function TradeJournalIndex({ journals, filters, availablePairs, a
                                     </TableHeader>
                                     <TableBody>
                                         {journals.data.map((journal) => (
-                                            <TableRow key={journal.id} className={journal.result === 'profit' ? 'bg-green-50 dark:bg-green-950/30' : journal.result === 'loss' ? 'bg-red-50 dark:bg-red-950/30' : ''}>
+                                            <TableRow key={journal.id} className={journal.result === 'profit' ? 'bg-green-50 dark:bg-green-950/30' : journal.result === 'loss' ? 'bg-red-50 dark:bg-red-950/30' : journal.result === 'break_even' ? 'bg-yellow-50 dark:bg-yellow-950/30' : ''}>
                                                 <TableCell>{journal.trade_date.split('T')[0]}</TableCell>
                                                 <TableCell>{journal.day}</TableCell>
                                                 <TableCell>{journal.account_balance?.account_name ?? '-'}</TableCell>
@@ -288,7 +289,7 @@ export default function TradeJournalIndex({ journals, filters, availablePairs, a
                                                 </TableCell>
                                                 <TableCell>{journal.session}</TableCell>
                                                 <TableCell>{journal.hft_market_trend}</TableCell>
-                                                <TableCell>{journal.mft_market_trend}</TableCell>
+                                                <TableCell>{journal.lft_market_trend}</TableCell>
                                                 <TableCell>
                                                     {journal.direction ? (
                                                         <Badge variant="default">
@@ -300,14 +301,23 @@ export default function TradeJournalIndex({ journals, filters, availablePairs, a
                                                 <TableCell>{journal.lot_size}</TableCell>
                                                 <TableCell>
                                                     {journal.result ? (
-                                                        <Badge className={journal.result === 'profit' ? 'bg-green-600 hover:bg-green-700 text-white' : ''} variant={journal.result === 'profit' ? 'default' : 'destructive'}>
-                                                            {journal.result.toUpperCase()}
+                                                        <Badge
+                                                            className={
+                                                                journal.result === 'profit'
+                                                                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                                                                    : journal.result === 'break_even'
+                                                                      ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                                                                      : ''
+                                                            }
+                                                            variant={journal.result === 'profit' ? 'default' : journal.result === 'break_even' ? 'outline' : 'destructive'}
+                                                        >
+                                                            {journal.result === 'break_even' ? 'BREAK EVEN' : journal.result.toUpperCase()}
                                                         </Badge>
                                                     ) : '-'}
                                                 </TableCell>
-                                                <TableCell className={journal.result === 'profit' ? 'text-green-600 dark:text-green-400 font-semibold' : journal.result === 'loss' ? 'text-red-600 dark:text-red-400 font-semibold' : ''}>
+                                                <TableCell className={journal.result === 'profit' ? 'text-green-600 dark:text-green-400 font-semibold' : journal.result === 'loss' ? 'text-red-600 dark:text-red-400 font-semibold' : journal.result === 'break_even' ? 'text-yellow-600 dark:text-yellow-400 font-semibold' : ''}>
                                                     {journal.profit_loss_amount != null
-                                                        ? `${journal.result === 'profit' ? '+' : '-'}$${Math.abs(Number(journal.profit_loss_amount)).toFixed(2)}`
+                                                        ? `${journal.result === 'profit' ? '+' : journal.result === 'break_even' ? '' : '-'}$${Math.abs(Number(journal.profit_loss_amount)).toFixed(2)}`
                                                         : '-'}
                                                 </TableCell>
                                                 <TableCell>

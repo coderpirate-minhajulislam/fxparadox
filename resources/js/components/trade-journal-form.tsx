@@ -30,6 +30,7 @@ const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 const TRENDS = ['Bullish', 'Bearish', 'Ranging', 'Consolidation'];
 
 const TRADE_TAGS = [
+    'Setup A+', 'Trend Follow', 'Counter Trend',
     'FOMO', 'Revenge Trade', 'Over-leveraged', 'Early Entry', 'Late Entry',
     'News Trade', 'Missed SL', 'Moved SL', 'Setup A', 'Setup B',
     'HTF Confluency', 'Break of Structure', 'Liquidity Grab', 'Fair Value Gap',
@@ -43,7 +44,7 @@ type TradeJournalFormData = {
     pair: string;
     session: string;
     hft_market_trend: string;
-    mft_market_trend: string;
+    lft_market_trend: string;
     direction: string;
     risk_reward: string;
     lot_size: string;
@@ -105,7 +106,7 @@ export default function TradeJournalForm({ journal, submitUrl, pairs, sessions, 
         pair: journal?.pair ?? '',
         session: journal?.session ?? '',
         hft_market_trend: journal?.hft_market_trend ?? '',
-        mft_market_trend: journal?.mft_market_trend ?? '',
+        lft_market_trend: journal?.lft_market_trend ?? '',
         direction: journal?.direction ?? '',
         risk_reward: journal?.risk_reward ?? '',
         lot_size: journal?.lot_size?.toString() ?? '',
@@ -222,7 +223,7 @@ export default function TradeJournalForm({ journal, submitUrl, pairs, sessions, 
                         </div>
                     </div>
 
-                    {/* Row 2: HFT Trend, MFT Trend, Direction */}
+                    {/* Row 2: HFT Trend, LFT Trend, Direction */}
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         <div className="space-y-2">
                             <Label htmlFor="hft_market_trend">HFT Market Trend</Label>
@@ -239,8 +240,8 @@ export default function TradeJournalForm({ journal, submitUrl, pairs, sessions, 
                             <InputError message={errors.hft_market_trend} />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="mft_market_trend">MFT Market Trend</Label>
-                            <Select value={data.mft_market_trend} onValueChange={(v) => setData('mft_market_trend', v)}>
+                            <Label htmlFor="lft_market_trend">LFT Market Trend</Label>
+                            <Select value={data.lft_market_trend} onValueChange={(v) => setData('lft_market_trend', v)}>
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Select trend" />
                                 </SelectTrigger>
@@ -250,7 +251,7 @@ export default function TradeJournalForm({ journal, submitUrl, pairs, sessions, 
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <InputError message={errors.mft_market_trend} />
+                            <InputError message={errors.lft_market_trend} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="direction">Direction</Label>
@@ -295,11 +296,12 @@ export default function TradeJournalForm({ journal, submitUrl, pairs, sessions, 
                             <Label htmlFor="result">Result</Label>
                             <Select value={data.result} onValueChange={(v) => setData('result', v)}>
                                 <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Profit / Loss" />
+                                    <SelectValue placeholder="Profit / Loss / Break Even" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="profit">Profit</SelectItem>
                                     <SelectItem value="loss">Loss</SelectItem>
+                                    <SelectItem value="break_even">Break Even</SelectItem>
                                 </SelectContent>
                             </Select>
                             <InputError message={errors.result} />

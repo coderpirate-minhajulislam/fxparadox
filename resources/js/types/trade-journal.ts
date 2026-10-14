@@ -12,11 +12,11 @@ export type TradeJournal = {
     pair: string;
     session: string;
     hft_market_trend: string;
-    mft_market_trend: string;
+    lft_market_trend: string;
     direction: 'long' | 'short';
     risk_reward: string | null;
     lot_size: number | null;
-    result: 'profit' | 'loss' | null;
+    result: 'profit' | 'loss' | 'break_even' | null;
     profit_loss_amount: number | null;
     trade_comment: string | null;
     hft_entry_image: string | null;
