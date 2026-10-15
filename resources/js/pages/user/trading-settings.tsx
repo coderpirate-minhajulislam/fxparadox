@@ -1,6 +1,6 @@
-import { Head, router, useForm } from '@inertiajs/react';
-import { FormEvent, useState } from 'react';
-import { Pencil, Trash2, Plus, Settings2, DollarSign, BarChart3, ClipboardCheck, CalendarClock, Clock, Shield } from 'lucide-react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { FormEvent, useEffect, useState } from 'react';
+import { Pencil, Trash2, Plus, Settings2, DollarSign, BarChart3, ClipboardCheck, CalendarClock, Clock, Shield, Bell, BellRing, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -51,6 +51,7 @@ export default function TradingSettings({ pairs, sessions, accounts, checklistRu
             <Head title="Trading Settings" />
             <div className="flex h-full flex-1 flex-col gap-6 p-4">
                 <TradingWindowSection tradingWindow={tradingWindow} />
+                <PushNotificationsSection />
                 <PairsSection pairs={pairs} />
                 <SessionsSection sessions={sessions} />
                 <AccountsSection accounts={accounts} />
@@ -234,6 +235,267 @@ function formatTime(timeStr: string): string {
     const period = h >= 12 ? 'PM' : 'AM';
     const hour = h % 12 || 12;
     return `${hour}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+/* ─── Push Notifications ─── */
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+
+    return outputArray;
+}
+
+function arrayBufferToBase64url(buffer: ArrayBuffer | null): string {
+    if (!buffer) {
+        return '';
+    }
+
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+
+    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function csrfToken(): string {
+    return (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content ?? '';
+}
+
+async function subscribeAndSave(vapidPublicKey: string): Promise<boolean> {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        return false;
+    }
+
+    const registration = await navigator.serviceWorker.register('/sw.js');
+    await navigator.serviceWorker.ready;
+
+    let subscription = await registration.pushManager.getSubscription();
+
+    if (!subscription) {
+        const permission = await Notification.requestPermission();
+
+        if (permission !== 'granted') {
+            return false;
+        }
+
+        subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey).buffer as ArrayBuffer,
+        });
+    }
+
+    const res = await fetch('/push-subscriptions/subscribe', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken(),
+            Accept: 'application/json',
+        },
+        body: JSON.stringify({
+            endpoint: subscription.endpoint,
+            keys: {
+                p256dh: arrayBufferToBase64url(subscription.getKey('p256dh')),
+                auth: arrayBufferToBase64url(subscription.getKey('auth')),
+            },
+        }),
+    });
+
+    return res.ok;
+}
+
+function PushNotificationsSection() {
+    const { pushSettings } = usePage().props as {
+        pushSettings?: { enabled: boolean; vapidPublicKey: string } | null;
+    };
+
+    const vapidPublicKey = pushSettings?.vapidPublicKey ?? '';
+    const [status, setStatus] = useState<'idle' | 'busy' | 'active' | 'blocked' | 'unsupported'>('idle');
+    const [testing, setTesting] = useState(false);
+    const [message, setMessage] = useState<string | null>(null);
+    const [messageTone, setMessageTone] = useState<'muted' | 'success' | 'error'>('muted');
+
+    async function checkStatus() {
+        if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+            setStatus('unsupported');
+            return;
+        }
+
+        const permission = Notification.permission;
+
+        if (permission === 'denied') {
+            setStatus('blocked');
+            return;
+        }
+
+        const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+        const subscription = registration ? await registration.pushManager.getSubscription() : null;
+
+        setStatus(subscription && permission === 'granted' ? 'active' : 'idle');
+    }
+
+    useEffect(() => {
+        checkStatus();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    async function handleEnable() {
+        setStatus('busy');
+        setMessage(null);
+        setMessageTone('muted');
+
+        try {
+            const ok = await subscribeAndSave(vapidPublicKey);
+            if (ok) {
+                setMessage('Push notifications enabled. You will be alerted when your trading window opens and closes — even with the browser closed.');
+                setMessageTone('success');
+                await checkStatus();
+            } else {
+                setStatus('blocked');
+                setMessage('Notification permission was not granted. Enable notifications for this site in your browser settings, then try again.');
+                setMessageTone('error');
+            }
+        } catch {
+            setStatus('idle');
+            setMessage('Could not set up push notifications. Please try again.');
+            setMessageTone('error');
+        }
+    }
+
+    async function handleReset() {
+        setStatus('busy');
+        setMessage(null);
+        setMessageTone('muted');
+
+        try {
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.getRegistration('/sw.js');
+                const subscription = registration ? await registration.pushManager.getSubscription() : null;
+
+                if (subscription) {
+                    await subscription.unsubscribe();
+                }
+
+                if (registration) {
+                    await registration.unregister();
+                }
+            }
+
+            await fetch('/push-subscriptions/unsubscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                    Accept: 'application/json',
+                },
+                body: JSON.stringify({ endpoint: 'all' }),
+            });
+
+            await handleEnable();
+        } catch {
+            setStatus('idle');
+            setMessage('Reset failed. Please try again.');
+            setMessageTone('error');
+        }
+    }
+
+    async function handleTest() {
+        setTesting(true);
+        setMessage(null);
+        setMessageTone('muted');
+
+        try {
+            const res = await fetch('/push-subscriptions/test', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken(),
+                    Accept: 'application/json',
+                },
+            });
+
+            const data = await res.json().catch(() => null);
+
+            if (res.ok && data?.success) {
+                setMessage(data.message ?? 'Test push sent. Check for the notification and sound.');
+                setMessageTone('success');
+            } else {
+                setMessage(data?.message ?? 'Test push failed. Please try again.');
+                setMessageTone('error');
+            }
+        } catch {
+            setMessage('Test push failed. Please try again.');
+            setMessageTone('error');
+        } finally {
+            setTesting(false);
+        }
+    }
+
+    const statusLabel =
+        status === 'active'
+            ? 'Active on this device'
+            : status === 'blocked'
+              ? 'Blocked — enable notifications in your browser settings'
+              : status === 'unsupported'
+                ? 'Not supported by this browser'
+                : 'Not enabled on this device';
+
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Bell className="h-5 w-5" /> Push Notifications
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                    Get a browser push notification (with sound) when your trading window opens and closes — works even when this app is closed or the browser is in the background.
+                </p>
+
+                <div className="flex items-center gap-2 text-sm">
+                    {status === 'active' ? (
+                        <BellRing className="h-4 w-4 text-green-600" />
+                    ) : (
+                        <Bell className={`h-4 w-4 ${status === 'blocked' ? 'text-red-500' : 'text-muted-foreground'}`} />
+                    )}
+                    <span className={status === 'active' ? 'font-medium text-green-600' : status === 'blocked' ? 'font-medium text-red-500' : 'text-muted-foreground'}>
+                        {statusLabel}
+                    </span>
+                </div>
+
+                {message && (
+                    <p className={`text-sm ${messageTone === 'success' ? 'text-green-600' : messageTone === 'error' ? 'text-red-500' : 'text-muted-foreground'}`}>
+                        {message}
+                    </p>
+                )}
+
+                {status !== 'active' && status !== 'unsupported' && status !== 'blocked' && (
+                    <Button type="button" size="sm" onClick={handleEnable} disabled={status === 'busy' || !vapidPublicKey}>
+                        <BellRing className="mr-1 h-4 w-4" /> Enable Push Notifications
+                    </Button>
+                )}
+
+                {status === 'active' && (
+                    <div className="flex flex-wrap gap-2">
+                        <Button type="button" size="sm" onClick={handleTest} disabled={testing}>
+                            <BellRing className="mr-1 h-4 w-4" /> {testing ? 'Sending…' : 'Send Test Push'}
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={handleReset}>
+                            <RefreshCw className="mr-1 h-4 w-4" /> Reset & Resubscribe
+                        </Button>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
 }
 
 /* ─── Trading Pairs ─── */

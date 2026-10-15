@@ -3,12 +3,15 @@ import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { TradingWindowTimer } from '@/components/trading-window-timer';
+import { useTradingWindowPush } from '@/hooks/use-trading-window-push';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({
     children,
     breadcrumbs = [],
 }: AppLayoutProps) {
+    useTradingWindowPush();
+
     return (
         <AppShell variant="sidebar">
             <AppSidebar />

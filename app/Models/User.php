@@ -96,6 +96,11 @@ class User extends Authenticatable
         return $this->hasMany(Note::class);
     }
 
+    public function pushSubscriptions(): HasMany
+    {
+        return $this->hasMany(PushSubscription::class);
+    }
+
     /**
      * Get the attributes that should be cast.
      *
@@ -114,6 +119,8 @@ class User extends Authenticatable
             'trading_window_enabled' => 'boolean',
             'trading_window_start' => 'string',
             'trading_window_end' => 'string',
+            'trading_window_start_notified_at' => 'datetime',
+            'trading_window_end_notified_at' => 'datetime',
         ];
     }
 }

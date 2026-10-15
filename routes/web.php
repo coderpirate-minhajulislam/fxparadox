@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\ForexNewsController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Manager\DashboardController as ManagerDashboardController;
+use App\Http\Controllers\PushSubscriptionController;
 use App\Http\Controllers\User\AccountBalanceController;
 use App\Http\Controllers\User\ChecklistRuleController;
 use App\Http\Controllers\User\DailyJournalLimitController;
@@ -66,6 +67,14 @@ Route::middleware(['auth', 'verified', 'role:admin'])->prefix('admin')->name('ad
 // Manager routes
 Route::middleware(['auth', 'verified', 'approved', 'role:manager'])->prefix('manager')->name('manager.')->group(function () {
     Route::get('dashboard', ManagerDashboardController::class)->name('dashboard');
+});
+
+// Web push subscriptions (any authenticated user)
+Route::middleware(['auth'])->prefix('push-subscriptions')->name('push.')->group(function () {
+    Route::post('subscribe', [PushSubscriptionController::class, 'subscribe'])->name('subscribe');
+    Route::post('unsubscribe', [PushSubscriptionController::class, 'unsubscribe'])->name('unsubscribe');
+    Route::post('test', [PushSubscriptionController::class, 'test'])->name('test');
+    Route::post('check-window', [PushSubscriptionController::class, 'checkWindow'])->name('check-window');
 });
 
 // User routes

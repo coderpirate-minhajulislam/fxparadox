@@ -29,7 +29,22 @@ class TradingWindowController extends Controller
             $validated['trading_window_end'] = substr($validated['trading_window_end'], 0, 5);
         }
 
-        $request->user()->update($validated);
+        $user = $request->user();
+
+        $scheduleChanged = $user->trading_window_enabled !== (bool) $validated['trading_window_enabled']
+            || $user->trading_window_start !== ($validated['trading_window_start'] ?? null)
+            || $user->trading_window_end !== ($validated['trading_window_end'] ?? null)
+            || $user->timezone !== ($validated['timezone'] ?? $user->timezone);
+
+        $user->fill($validated);
+
+        // Reset push markers so the new schedule fires fresh start/end notifications
+        if ($scheduleChanged) {
+            $user->trading_window_start_notified_at = null;
+            $user->trading_window_end_notified_at = null;
+        }
+
+        $user->save();
 
         return back()->with('success', 'Trading window settings updated.');
     }

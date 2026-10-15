@@ -2,7 +2,9 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Setting;
 use App\Models\SiteContent;
+use App\Services\WebPushService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -53,11 +55,31 @@ class HandleInertiaRequests extends Middleware
                 'disciplineMessage' => $user->discipline_message,
                 'timezone' => $user->timezone ?? 'Asia/Dhaka',
             ] : null,
+            'pushSettings' => $user ? [
+                'enabled' => (bool) Setting::get('trading_window_notifications_enabled', true),
+                'vapidPublicKey' => $this->vapidPublicKey(),
+            ] : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'flash' => [
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
             ],
         ];
+    }
+
+    private function vapidPublicKey(): string
+    {
+        $key = Setting::get('vapid_public_key', '');
+
+        if ($key === '') {
+            try {
+                new WebPushService;
+                $key = Setting::get('vapid_public_key', '');
+            } catch (\Throwable) {
+                // Key generation failed — push will simply be unavailable
+            }
+        }
+
+        return $key;
     }
 }
